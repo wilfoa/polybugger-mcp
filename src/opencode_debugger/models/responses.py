@@ -240,3 +240,53 @@ class InfoResponse(BaseModel):
     debugpy_version: Optional[str] = None
     max_sessions: int
     active_sessions: int
+
+
+# Watch expression responses
+
+
+class WatchListResponse(BaseModel):
+    """List of watch expressions."""
+
+    expressions: list[str]
+
+
+class WatchResultResponse(BaseModel):
+    """Single watch expression result."""
+
+    expression: str
+    result: Optional[str] = None
+    type: Optional[str] = None
+    variables_reference: int = 0
+    error: Optional[str] = None
+
+
+class WatchResultsResponse(BaseModel):
+    """Results of evaluating all watch expressions."""
+
+    results: list[WatchResultResponse]
+
+
+# Recovery responses
+
+
+class RecoverableSessionResponse(BaseModel):
+    """Information about a recoverable session."""
+
+    id: str
+    name: str
+    project_root: str
+    previous_state: str
+    created_at: datetime
+    last_activity: datetime
+    saved_at: datetime
+    server_shutdown: bool
+    breakpoint_count: int
+    watch_expression_count: int
+
+
+class RecoverableSessionsResponse(BaseModel):
+    """List of recoverable sessions."""
+
+    sessions: list[RecoverableSessionResponse]
+    total: int

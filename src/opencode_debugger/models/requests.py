@@ -90,3 +90,21 @@ class StepRequest(BaseModel):
     """Request for step operations."""
 
     thread_id: Optional[int] = None
+
+
+class AddWatchRequest(BaseModel):
+    """Request to add a watch expression."""
+
+    expression: str
+
+
+class RemoveWatchRequest(BaseModel):
+    """Request to remove a watch expression."""
+
+    expression: str
+
+
+class EvaluateWatchesRequest(BaseModel):
+    """Request to evaluate all watch expressions."""
+
+    frame_id: Optional[int] = None

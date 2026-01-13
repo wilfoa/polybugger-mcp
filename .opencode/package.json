@@ -1,8 +1,5 @@
 {
-  "name": "opencode-debugger-plugin",
-  "version": "1.0.0",
-  "description": "OpenCode plugin for Python debugging",
   "dependencies": {
-    "@opencode-ai/plugin": "latest"
+    "@opencode-ai/plugin": "1.1.18"
   }
 }

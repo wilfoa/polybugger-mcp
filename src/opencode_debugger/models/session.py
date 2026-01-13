@@ -12,6 +12,7 @@ class SessionConfig(BaseModel):
     project_root: str
     name: Optional[str] = None
     timeout_minutes: int = Field(default=60, ge=1, le=1440)  # Max 24 hours
+    recover_from: Optional[str] = None  # Session ID to recover settings from
 
 
 class SessionInfo(BaseModel):

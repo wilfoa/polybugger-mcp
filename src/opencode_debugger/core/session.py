@@ -29,6 +29,7 @@ from opencode_debugger.models.dap import (
 from opencode_debugger.models.events import EventType
 from opencode_debugger.models.session import SessionConfig, SessionInfo
 from opencode_debugger.persistence.breakpoints import BreakpointStore
+from opencode_debugger.persistence.sessions import PersistedSession, SessionStore
 from opencode_debugger.utils.output_buffer import OutputBuffer
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,9 @@ class Session:
 
         # Breakpoints (file path -> list of breakpoints)
         self._breakpoints: dict[str, list[SourceBreakpoint]] = {}
+
+        # Watch expressions (evaluated on each stop)
+        self._watch_expressions: list[str] = []
 
     @property
     def state(self) -> SessionState:
@@ -312,6 +316,144 @@ class Session:
         self.event_queue.clear()
         logger.info(f"Session {self.id}: cleaned up")
 
+    # Watch expression methods
+
+    def add_watch(self, expression: str) -> list[str]:
+        """Add a watch expression.
+
+        Args:
+            expression: Expression to watch
+
+        Returns:
+            Current list of watch expressions
+        """
+        self.touch()
+        if expression not in self._watch_expressions:
+            self._watch_expressions.append(expression)
+        return self._watch_expressions.copy()
+
+    def remove_watch(self, expression: str) -> list[str]:
+        """Remove a watch expression.
+
+        Args:
+            expression: Expression to remove
+
+        Returns:
+            Current list of watch expressions
+        """
+        self.touch()
+        if expression in self._watch_expressions:
+            self._watch_expressions.remove(expression)
+        return self._watch_expressions.copy()
+
+    def list_watches(self) -> list[str]:
+        """Get all watch expressions.
+
+        Returns:
+            List of watch expressions
+        """
+        return self._watch_expressions.copy()
+
+    def clear_watches(self) -> None:
+        """Clear all watch expressions."""
+        self.touch()
+        self._watch_expressions.clear()
+
+    async def evaluate_watches(
+        self,
+        frame_id: Optional[int] = None,
+    ) -> list[dict[str, Any]]:
+        """Evaluate all watch expressions.
+
+        Args:
+            frame_id: Frame to evaluate in (uses current frame if None)
+
+        Returns:
+            List of evaluation results with expression, result, type, and error
+        """
+        if not self.adapter or self._state != SessionState.PAUSED:
+            return []
+
+        results: list[dict[str, Any]] = []
+        for expr in self._watch_expressions:
+            try:
+                result = await self.adapter.evaluate(expr, frame_id, "watch")
+                results.append({
+                    "expression": expr,
+                    "result": result.get("result", ""),
+                    "type": result.get("type"),
+                    "variables_reference": result.get("variablesReference", 0),
+                    "error": None,
+                })
+            except Exception as e:
+                results.append({
+                    "expression": expr,
+                    "result": None,
+                    "type": None,
+                    "variables_reference": 0,
+                    "error": str(e),
+                })
+        return results
+
+    # Persistence methods
+
+    def to_persisted(self, server_shutdown: bool = False) -> PersistedSession:
+        """Convert to persistable format for recovery.
+
+        Args:
+            server_shutdown: Whether this is during graceful shutdown
+
+        Returns:
+            PersistedSession for storage
+        """
+        from datetime import datetime, timezone
+
+        return PersistedSession(
+            id=self.id,
+            name=self.name,
+            project_root=str(self.project_root),
+            state=self._state.value,
+            created_at=self.created_at,
+            last_activity=self.last_activity,
+            breakpoints={
+                path: [bp.model_dump() for bp in bps]
+                for path, bps in self._breakpoints.items()
+            },
+            watch_expressions=self._watch_expressions.copy(),
+            saved_at=datetime.now(timezone.utc),
+            server_shutdown=server_shutdown,
+        )
+
+    @classmethod
+    def from_persisted(cls, data: PersistedSession) -> "Session":
+        """Create a new session initialized from persisted data.
+
+        Note: This creates a NEW session with the same settings,
+        not a restored connection to the old debug process.
+
+        Args:
+            data: Persisted session data
+
+        Returns:
+            New Session with settings from persisted data
+        """
+        session = cls(
+            session_id=data.id,
+            project_root=Path(data.project_root),
+            name=data.name,
+        )
+
+        # Restore breakpoints
+        for path, bps in data.breakpoints.items():
+            session._breakpoints[path] = [
+                SourceBreakpoint(**bp) for bp in bps
+            ]
+
+        # Restore watch expressions
+        session._watch_expressions = data.watch_expressions.copy()
+
+        return session
+
     def _handle_output(self, category: str, content: str) -> None:
         """Handle output from debugpy."""
         self.output_buffer.append(category, content)
@@ -359,34 +501,58 @@ class Session:
 class SessionManager:
     """Manages all debug sessions."""
 
-    def __init__(self, breakpoint_store: Optional[BreakpointStore] = None):
+    def __init__(
+        self,
+        breakpoint_store: Optional[BreakpointStore] = None,
+        session_store: Optional[SessionStore] = None,
+    ):
         self._sessions: dict[str, Session] = {}
         self._lock = asyncio.Lock()
         self._breakpoint_store = breakpoint_store or BreakpointStore()
+        self._session_store = session_store or SessionStore()
         self._cleanup_task: Optional[asyncio.Task[None]] = None
+        self._persist_task: Optional[asyncio.Task[None]] = None
+        self._recoverable_sessions: dict[str, PersistedSession] = {}
 
     async def start(self) -> None:
         """Start the session manager and background tasks."""
         settings.ensure_directories()
+
+        # Load recoverable sessions from previous run
+        await self._load_recoverable_sessions()
+
+        # Start background tasks
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
+        self._persist_task = asyncio.create_task(self._persist_loop())
         logger.info("SessionManager started")
 
     async def stop(self) -> None:
         """Stop the session manager and cleanup all sessions."""
-        if self._cleanup_task:
-            self._cleanup_task.cancel()
-            try:
-                await self._cleanup_task
-            except asyncio.CancelledError:
-                pass
+        # Cancel background tasks
+        for task in [self._cleanup_task, self._persist_task]:
+            if task:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
-        # Terminate all sessions
+        # Persist and terminate all sessions
         async with self._lock:
             for session in list(self._sessions.values()):
+                # Save session state for recovery
+                try:
+                    persisted = session.to_persisted(server_shutdown=True)
+                    await self._session_store.save(persisted)
+                except Exception as e:
+                    logger.warning(f"Failed to persist session {session.id}: {e}")
+
+                # Save breakpoints
+                await self._breakpoint_store.save(session.project_root, session._breakpoints)
                 await session.cleanup()
             self._sessions.clear()
 
-        logger.info("SessionManager stopped")
+        logger.info("SessionManager stopped (sessions persisted for recovery)")
 
     async def create_session(self, config: SessionConfig) -> Session:
         """Create a new debug session."""
@@ -471,3 +637,117 @@ class SessionManager:
     def active_count(self) -> int:
         """Number of active sessions."""
         return len(self._sessions)
+
+    # Recovery methods
+
+    async def _load_recoverable_sessions(self) -> None:
+        """Load sessions from previous server run for recovery."""
+        try:
+            # Clean up very old sessions first
+            await self._session_store.cleanup_old(max_age_hours=24)
+
+            # Load remaining sessions
+            persisted = await self._session_store.list_all()
+            for session_data in persisted:
+                self._recoverable_sessions[session_data.id] = session_data
+                logger.info(
+                    f"Loaded recoverable session {session_data.id} "
+                    f"(project: {session_data.project_root})"
+                )
+
+            if self._recoverable_sessions:
+                logger.info(
+                    f"Found {len(self._recoverable_sessions)} recoverable sessions"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to load recoverable sessions: {e}")
+
+    async def _persist_loop(self) -> None:
+        """Background task to periodically persist active sessions."""
+        while True:
+            await asyncio.sleep(300)  # Every 5 minutes
+            await self._persist_active_sessions()
+
+    async def _persist_active_sessions(self) -> None:
+        """Persist all active sessions for crash recovery."""
+        async with self._lock:
+            for session in self._sessions.values():
+                try:
+                    persisted = session.to_persisted(server_shutdown=False)
+                    await self._session_store.save(persisted)
+                except Exception as e:
+                    logger.warning(f"Failed to persist session {session.id}: {e}")
+
+    async def list_recoverable_sessions(self) -> list[PersistedSession]:
+        """List sessions available for recovery.
+
+        Returns:
+            List of persisted sessions that can be recovered
+        """
+        return list(self._recoverable_sessions.values())
+
+    async def get_recoverable_session(self, session_id: str) -> Optional[PersistedSession]:
+        """Get a specific recoverable session.
+
+        Args:
+            session_id: Session ID to get
+
+        Returns:
+            PersistedSession if found, None otherwise
+        """
+        return self._recoverable_sessions.get(session_id)
+
+    async def recover_session(self, session_id: str) -> Session:
+        """Create a new session from recoverable session data.
+
+        This creates a NEW debug session initialized with the settings
+        (breakpoints, watch expressions) from the previous session.
+        The debug process itself cannot be restored.
+
+        Args:
+            session_id: ID of the recoverable session
+
+        Returns:
+            New Session with recovered settings
+
+        Raises:
+            SessionNotFoundError: If session not found in recoverable list
+            SessionLimitError: If max sessions reached
+        """
+        async with self._lock:
+            if len(self._sessions) >= settings.max_sessions:
+                raise SessionLimitError(settings.max_sessions)
+
+            persisted = self._recoverable_sessions.get(session_id)
+            if not persisted:
+                raise SessionNotFoundError(session_id)
+
+            # Create new session with recovered settings
+            session = Session.from_persisted(persisted)
+
+            # Initialize adapter
+            await session.initialize_adapter()
+
+            # Remove from recoverable list and delete persisted file
+            del self._recoverable_sessions[session_id]
+            await self._session_store.delete(session_id)
+
+            self._sessions[session_id] = session
+            logger.info(f"Recovered session {session_id} for {persisted.project_root}")
+            return session
+
+    async def dismiss_recoverable_session(self, session_id: str) -> bool:
+        """Dismiss a recoverable session without recovering it.
+
+        Args:
+            session_id: Session ID to dismiss
+
+        Returns:
+            True if dismissed, False if not found
+        """
+        if session_id in self._recoverable_sessions:
+            del self._recoverable_sessions[session_id]
+            await self._session_store.delete(session_id)
+            logger.info(f"Dismissed recoverable session {session_id}")
+            return True
+        return False

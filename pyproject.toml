@@ -32,6 +32,7 @@ dependencies = [
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "aiofiles>=23.2.0",
+    "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -49,6 +50,7 @@ dev = [
 
 [project.scripts]
 opencode-debugger = "opencode_debugger.main:main"
+opencode-debugger-mcp = "opencode_debugger.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/opencode/opencode-debugger"

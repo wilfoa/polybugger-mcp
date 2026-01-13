@@ -2,7 +2,16 @@
 
 from fastapi import APIRouter
 
-from opencode_debugger.api import breakpoints, execution, inspection, output, server, sessions
+from opencode_debugger.api import (
+    breakpoints,
+    execution,
+    inspection,
+    output,
+    recovery,
+    server,
+    sessions,
+    watches,
+)
 
 # Create main router with API version prefix
 api_router = APIRouter(prefix="/api/v1")
@@ -14,3 +23,5 @@ api_router.include_router(breakpoints.router)
 api_router.include_router(execution.router)
 api_router.include_router(inspection.router)
 api_router.include_router(output.router)
+api_router.include_router(watches.router)
+api_router.include_router(recovery.router)

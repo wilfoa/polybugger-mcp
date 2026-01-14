@@ -5,7 +5,7 @@
 [![Tests](https://github.com/wilfoa/pybugger-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/wilfoa/pybugger-mcp/actions/workflows/tests.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-A Model Context Protocol (MCP) server that enables AI agents to debug Python code interactively. Set breakpoints, step through code, inspect variables, and evaluate expressions - all through natural conversation with your AI assistant.
+A lightweight, pure-Python MCP server for interactive debugging. Uses debugpy (VS Code's debugger) under the hood for reliable, battle-tested debugging.
 
 [![Install in Cursor](https://img.shields.io/badge/Cursor-Install%20MCP-blue?style=for-the-badge&logo=cursor)](https://cursor.com/install-mcp?name=pybugger&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJweWJ1Z2dlci1tY3AiXX0=)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install%20Server-0098FF?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22pybugger%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22pybugger-mcp%22%5D%7D)
@@ -14,13 +14,25 @@ A Model Context Protocol (MCP) server that enables AI agents to debug Python cod
 
 https://github.com/wilfoa/pybugger-mcp/raw/main/docs/demo.mov
 
+## Why pybugger-mcp?
+
+| Feature | pybugger-mcp | Other MCP debuggers |
+|---------|--------------|---------------------|
+| **Session Recovery** | Resume debugging after server restart | Not available |
+| **Watch Expressions** | Track values across debug steps | Planned for 2026 |
+| **Pure Python** | Single `pip install`, no Node.js | Requires Node.js runtime |
+| **HTTP API** | Use independently of MCP | MCP-only |
+| **Lightweight** | ~50KB, minimal dependencies | ~3MB+ bundled |
+
 ## Key Features
 
-- **Full Interactive Debugging** - Set breakpoints, step over/into/out, pause, and continue
-- **Variable Inspection** - View locals, globals, and evaluate arbitrary expressions
-- **Watch Expressions** - Track values across debug steps
-- **Session Recovery** - Resume debugging after server restart
-- **Multi-Client Support** - Works with Cursor, VS Code, Claude Desktop, and more
+- **Session Recovery** - Persist debug state and resume after server restart
+- **Watch Expressions** - Define expressions to track across every debug step
+- **Full Interactive Debugging** - Breakpoints, stepping, pause/continue
+- **Variable Inspection** - View locals, globals, evaluate arbitrary expressions
+- **Pure Python** - No Node.js required, just `pip install`
+- **Dual Interface** - Use via MCP or standalone HTTP API
+- **Multi-Client Support** - Cursor, VS Code, Claude Desktop, and more
 
 ## Installation
 
@@ -256,7 +268,7 @@ AI: I'll create a debug session and set breakpoints in the calculate function.
 
 ## Configuration
 
-Environment variables (prefix with `PYTHON_DEBUGGER_MCP_`):
+Environment variables (prefix with `PYBUGGER_MCP_`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|

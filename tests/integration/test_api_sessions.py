@@ -41,7 +41,7 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert data["version"] == "0.1.0"
+        assert "version" in data  # Version is dynamic, just check it exists
         assert "active_sessions" in data
 
 

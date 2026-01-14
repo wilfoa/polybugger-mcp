@@ -89,6 +89,21 @@ make run-mcp
 5. **Update documentation** if needed
 6. **Submit a pull request** with a clear description of changes
 
+### CI Requirements
+
+All pull requests must pass the following checks before merging:
+
+- **Tests** - Must pass on Python 3.10, 3.11, and 3.12
+- **Lint** - Code must pass ruff linting and formatting checks
+- **Type Check** - Code must pass mypy type checking
+- **CI Success** - Aggregated status check that ensures all jobs pass
+
+The `main` branch is protected and requires:
+- All CI checks to pass
+- At least 1 approving review
+- Branch to be up-to-date with main
+- All conversations to be resolved
+
 ### Commit Messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning:

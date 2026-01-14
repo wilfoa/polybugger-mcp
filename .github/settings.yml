@@ -1,0 +1,47 @@
+# Repository settings for use with probot/settings app
+# or as documentation for manual configuration
+#
+# To enable automatic configuration, install the Settings app:
+# https://github.com/apps/settings
+#
+# Or configure manually in: Settings > Branches > Branch protection rules
+
+repository:
+  name: python-debugger-mcp
+  description: MCP server for debugging Python code with AI agents
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: true
+  default_branch: main
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+  enable_automated_security_fixes: true
+  enable_vulnerability_alerts: true
+
+# Branch protection rules
+branches:
+  - name: main
+    protection:
+      # Require status checks to pass before merging
+      required_status_checks:
+        strict: true  # Require branches to be up to date before merging
+        contexts:
+          - "CI Success"  # The aggregated status check from ci.yml
+
+      # Require pull request reviews before merging
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: false
+
+      # Require conversation resolution before merging
+      required_conversation_resolution: true
+
+      # Do not allow bypassing the above settings
+      enforce_admins: false
+
+      # Restrict who can push to matching branches
+      restrictions: null  # null = no restrictions (anyone with write access)

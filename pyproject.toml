@@ -203,6 +203,10 @@ exclude_commit_patterns = [
 match = "main"
 prerelease = false
 
+[tool.semantic_release.branches.master]
+match = "master"
+prerelease = false
+
 [tool.semantic_release.commit_parser_options]
 allowed_tags = ["feat", "fix", "perf", "refactor", "build"]
 minor_tags = ["feat"]

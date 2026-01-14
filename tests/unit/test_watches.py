@@ -2,7 +2,7 @@
 
 import pytest
 
-from opencode_debugger.core.session import Session, SessionState
+from python_debugger_mcp.core.session import Session
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ class TestWatchPersistence:
         """Test that persisted data includes watch expressions."""
         session.add_watch("foo")
         session.add_watch("bar.baz")
-        
+
         persisted = session.to_persisted()
         assert persisted.watch_expressions == ["foo", "bar.baz"]
 
@@ -97,10 +97,10 @@ class TestWatchPersistence:
         """Test that recovered session has watch expressions."""
         session.add_watch("x * 2")
         session.add_watch("len(items)")
-        
+
         persisted = session.to_persisted()
         recovered = Session.from_persisted(persisted)
-        
+
         watches = recovered.list_watches()
         assert "x * 2" in watches
         assert "len(items)" in watches

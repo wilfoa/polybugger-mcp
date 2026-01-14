@@ -1,9 +1,9 @@
 # Low-Level Design: API Specification
 
-**Project:** OpenCode Debug Relay Server  
-**Document Version:** 1.0  
-**Created:** January 13, 2026  
-**Status:** Design Complete  
+**Project:** OpenCode Debug Relay Server
+**Document Version:** 1.0
+**Created:** January 13, 2026
+**Status:** Design Complete
 **Author:** API Designer Agent
 
 ---
@@ -3434,7 +3434,7 @@ while true; do
   RESPONSE=$(curl -s "$BASE_URL/sessions/$SESSION_ID")
   STATUS=$(echo $RESPONSE | jq -r '.data.status')
   REASON=$(echo $RESPONSE | jq -r '.data.stop_reason')
-  
+
   if [ "$STATUS" = "paused" ] && [ "$REASON" = "exception" ]; then
     echo "=== Exception caught! ==="
     echo $RESPONSE | jq '.data.exception'
@@ -3547,24 +3547,24 @@ from typing import Optional, Dict, Any, List
 
 class DebugClient:
     """Client for OpenCode Debug Relay Server API."""
-    
+
     def __init__(self, base_url: str = "http://localhost:5679/api/v1"):
         self.base_url = base_url
         self.session_id: Optional[str] = None
         self._event_cursor: Optional[str] = None
-    
+
     def _request(self, method: str, path: str, **kwargs) -> Dict[str, Any]:
         """Make an API request and return the data."""
         url = f"{self.base_url}{path}"
         response = requests.request(method, url, **kwargs)
         result = response.json()
-        
+
         if not result.get("success"):
             error = result.get("error", {})
             raise Exception(f"API Error: {error.get('code')} - {error.get('message')}")
-        
+
         return result.get("data", {})
-    
+
     def create_session(self, name: str = None, project_root: str = None) -> str:
         """Create a new debug session."""
         payload = {}
@@ -3572,15 +3572,15 @@ class DebugClient:
             payload["name"] = name
         if project_root:
             payload["project_root"] = project_root
-        
+
         data = self._request("POST", "/sessions", json=payload)
         self.session_id = data["session_id"]
         return self.session_id
-    
+
     def get_session(self) -> Dict[str, Any]:
         """Get current session status."""
         return self._request("GET", f"/sessions/{self.session_id}")
-    
+
     def set_breakpoints(self, breakpoints: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Set breakpoints in the session."""
         data = self._request(
@@ -3589,8 +3589,8 @@ class DebugClient:
             json={"breakpoints": breakpoints}
         )
         return data["breakpoints"]
-    
-    def launch(self, script: str, args: List[str] = None, 
+
+    def launch(self, script: str, args: List[str] = None,
                cwd: str = None, stop_on_entry: bool = False,
                stop_on_exception: bool = True) -> Dict[str, Any]:
         """Launch a program for debugging."""
@@ -3603,9 +3603,9 @@ class DebugClient:
             payload["args"] = args
         if cwd:
             payload["cwd"] = cwd
-        
+
         return self._request("POST", f"/sessions/{self.session_id}/launch", json=payload)
-    
+
     def wait_for_pause(self, timeout: float = 30.0) -> Dict[str, Any]:
         """Wait until the program is paused."""
         start = time.time()
@@ -3617,23 +3617,23 @@ class DebugClient:
                 raise Exception("Program terminated")
             time.sleep(0.1)
         raise TimeoutError("Timeout waiting for pause")
-    
+
     def continue_execution(self) -> Dict[str, Any]:
         """Resume program execution."""
         return self._request("POST", f"/sessions/{self.session_id}/continue")
-    
+
     def step_over(self) -> Dict[str, Any]:
         """Step over to next line."""
         return self._request("POST", f"/sessions/{self.session_id}/step-over")
-    
+
     def step_into(self) -> Dict[str, Any]:
         """Step into function call."""
         return self._request("POST", f"/sessions/{self.session_id}/step-into")
-    
+
     def step_out(self) -> Dict[str, Any]:
         """Step out of current function."""
         return self._request("POST", f"/sessions/{self.session_id}/step-out")
-    
+
     def get_stacktrace(self, thread_id: int = None) -> List[Dict[str, Any]]:
         """Get current stack trace."""
         params = {}
@@ -3641,7 +3641,7 @@ class DebugClient:
             params["thread_id"] = thread_id
         data = self._request("GET", f"/sessions/{self.session_id}/stacktrace", params=params)
         return data["frames"]
-    
+
     def get_variables(self, variables_reference: int) -> List[Dict[str, Any]]:
         """Get variables for a scope or variable reference."""
         data = self._request(
@@ -3650,7 +3650,7 @@ class DebugClient:
             params={"variables_reference": variables_reference}
         )
         return data["variables"]
-    
+
     def get_local_variables(self, frame_id: int = 0) -> List[Dict[str, Any]]:
         """Get local variables for a frame."""
         scopes = self._request(
@@ -3658,12 +3658,12 @@ class DebugClient:
             f"/sessions/{self.session_id}/scopes",
             params={"frame_id": frame_id}
         )
-        
+
         for scope in scopes["scopes"]:
             if scope["name"] == "Locals":
                 return self.get_variables(scope["variables_reference"])
         return []
-    
+
     def evaluate(self, expression: str, frame_id: int = 0) -> Dict[str, Any]:
         """Evaluate an expression in the current context."""
         return self._request(
@@ -3671,22 +3671,22 @@ class DebugClient:
             f"/sessions/{self.session_id}/evaluate",
             json={"expression": expression, "frame_id": frame_id}
         )
-    
+
     def get_output(self) -> List[Dict[str, Any]]:
         """Get program output."""
         data = self._request("GET", f"/sessions/{self.session_id}/output")
         return data["entries"]
-    
+
     def poll_events(self, timeout: int = 0) -> List[Dict[str, Any]]:
         """Poll for debug events."""
         params = {"timeout": timeout}
         if self._event_cursor:
             params["cursor"] = self._event_cursor
-        
+
         data = self._request("GET", f"/sessions/{self.session_id}/events", params=params)
         self._event_cursor = data.get("next_cursor")
         return data["events"]
-    
+
     def delete_session(self) -> Dict[str, Any]:
         """Delete the current session."""
         result = self._request("DELETE", f"/sessions/{self.session_id}")
@@ -3697,7 +3697,7 @@ class DebugClient:
 # Example usage
 if __name__ == "__main__":
     client = DebugClient()
-    
+
     try:
         # Create session
         session_id = client.create_session(
@@ -3705,13 +3705,13 @@ if __name__ == "__main__":
             project_root="/Users/dev/myproject"
         )
         print(f"Created session: {session_id}")
-        
+
         # Set breakpoint
         breakpoints = client.set_breakpoints([
             {"source": {"path": "/Users/dev/myproject/main.py"}, "line": 25}
         ])
         print(f"Set {len(breakpoints)} breakpoint(s)")
-        
+
         # Launch program
         client.launch(
             script="/Users/dev/myproject/main.py",
@@ -3719,43 +3719,43 @@ if __name__ == "__main__":
             stop_on_exception=True
         )
         print("Program launched")
-        
+
         # Wait for breakpoint
         session = client.wait_for_pause()
         print(f"Paused at: {session['current_location']}")
-        
+
         # Get stack trace
         frames = client.get_stacktrace()
         print(f"Stack trace ({len(frames)} frames):")
         for frame in frames:
             print(f"  {frame['name']} at {frame['source']['path']}:{frame['line']}")
-        
+
         # Get local variables
         variables = client.get_local_variables()
         print("Local variables:")
         for var in variables:
             print(f"  {var['name']} = {var['value']} ({var['type']})")
-        
+
         # Evaluate expression
         result = client.evaluate("len(data) * 2")
         print(f"Evaluation result: {result['result']} ({result['type']})")
-        
+
         # Continue and wait for completion
         client.continue_execution()
-        
+
         while True:
             session = client.get_session()
             if session["status"] == "terminated":
                 print("Program terminated")
                 break
             time.sleep(0.5)
-        
+
         # Get final output
         output = client.get_output()
         print(f"Program output ({len(output)} entries):")
         for entry in output[-5:]:  # Last 5 entries
             print(f"  [{entry['category']}] {entry['output'].strip()}")
-    
+
     finally:
         # Cleanup
         if client.session_id:

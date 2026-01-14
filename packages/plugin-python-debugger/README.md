@@ -1,6 +1,6 @@
-# OpenCode Python Debugger Plugin
+# Python Debugger MCP Python Debugger Plugin
 
-An OpenCode plugin that provides custom tools for interactive Python debugging via the OpenCode Debug Relay Server.
+An Python Debugger MCP plugin that provides custom tools for interactive Python debugging via the Python Debugger MCP.
 
 ## Installation
 
@@ -14,7 +14,7 @@ Add to your `opencode.json`:
 ```
 
 ### Local installation
-Copy `index.ts` to your OpenCode plugin directory:
+Copy `index.ts` to your Python Debugger MCP plugin directory:
 
 ```bash
 # Project-level
@@ -28,14 +28,14 @@ cp index.ts ~/.config/opencode/plugin/python-debugger.ts
 
 ## Prerequisites
 
-The OpenCode Debug Relay Server must be running:
+The Python Debugger MCP must be running:
 
 ```bash
 # Install the debug server
-pip install opencode-debugger
+pip install python-debugger-mcp
 
 # Start the server
-python -m opencode_debugger.main
+python -m python_debugger_mcp.main
 ```
 
 By default, the plugin connects to `http://127.0.0.1:5679`. Configure via environment variables:
@@ -44,7 +44,7 @@ By default, the plugin connects to `http://127.0.0.1:5679`. Configure via enviro
 
 ## Available Tools
 
-The plugin provides the following tools to OpenCode agents:
+The plugin provides the following tools to Python Debugger MCP agents:
 
 ### Session Management
 - **debug-session-create** - Create a new debug session for a project

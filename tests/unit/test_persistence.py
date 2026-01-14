@@ -1,11 +1,12 @@
 """Tests for persistence layer."""
 
-import pytest
 from pathlib import Path
 
-from opencode_debugger.models.dap import SourceBreakpoint
-from opencode_debugger.persistence.breakpoints import BreakpointStore
-from opencode_debugger.persistence.storage import (
+import pytest
+
+from python_debugger_mcp.models.dap import SourceBreakpoint
+from python_debugger_mcp.persistence.breakpoints import BreakpointStore
+from python_debugger_mcp.persistence.storage import (
     atomic_write,
     project_id_from_path,
     safe_delete,
@@ -27,9 +28,7 @@ class TestStorageFunctions:
         assert id1 == id2
         assert len(id1) == 16
 
-    def test_project_id_from_path_different_for_different_paths(
-        self, tmp_path: Path
-    ) -> None:
+    def test_project_id_from_path_different_for_different_paths(self, tmp_path: Path) -> None:
         """Test that different paths get different IDs."""
         project1 = tmp_path / "project1"
         project2 = tmp_path / "project2"
@@ -193,9 +192,7 @@ class TestBreakpointStore:
             },
         )
 
-        breakpoints = await breakpoint_store.get_file_breakpoints(
-            project_root, "/path/to/file.py"
-        )
+        breakpoints = await breakpoint_store.get_file_breakpoints(project_root, "/path/to/file.py")
 
         assert len(breakpoints) == 1
         assert breakpoints[0].line == 10

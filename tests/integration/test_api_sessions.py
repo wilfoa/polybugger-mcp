@@ -4,28 +4,29 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from opencode_debugger.core.session import SessionManager
-from opencode_debugger.main import create_app
+from python_debugger_mcp.core.session import SessionManager
+from python_debugger_mcp.main import create_app
 
 
 @pytest_asyncio.fixture
 async def test_client(tmp_path):
     """Create test client with properly initialized app."""
     app = create_app()
-    
+
     # Initialize session manager manually for testing
-    from opencode_debugger.persistence.breakpoints import BreakpointStore
+    from python_debugger_mcp.persistence.breakpoints import BreakpointStore
+
     breakpoint_store = BreakpointStore(base_dir=tmp_path / "breakpoints")
     session_manager = SessionManager(breakpoint_store=breakpoint_store)
     await session_manager.start()
     app.state.session_manager = session_manager
-    
+
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
     ) as client:
         yield client
-    
+
     await session_manager.stop()
 
 
@@ -36,7 +37,7 @@ class TestHealthEndpoint:
     async def test_health_returns_ok(self, test_client: AsyncClient) -> None:
         """Test health endpoint returns healthy status."""
         response = await test_client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
@@ -51,7 +52,7 @@ class TestInfoEndpoint:
     async def test_info_returns_server_info(self, test_client: AsyncClient) -> None:
         """Test info endpoint returns server information."""
         response = await test_client.get("/api/v1/info")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "OpenCode Debug Relay"
@@ -69,7 +70,7 @@ class TestSessionsEndpoint:
             "/api/v1/sessions",
             json={"project_root": str(tmp_path)},
         )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert "id" in data
@@ -84,7 +85,7 @@ class TestSessionsEndpoint:
             "/api/v1/sessions",
             json={"project_root": str(tmp_path), "name": "my-debug-session"},
         )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "my-debug-session"
@@ -93,7 +94,7 @@ class TestSessionsEndpoint:
     async def test_list_sessions_empty(self, test_client: AsyncClient) -> None:
         """Test listing sessions when none exist."""
         response = await test_client.get("/api/v1/sessions")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["sessions"] == []
@@ -111,9 +112,9 @@ class TestSessionsEndpoint:
             "/api/v1/sessions",
             json={"project_root": str(tmp_path)},
         )
-        
+
         response = await test_client.get("/api/v1/sessions")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data["sessions"]) == 2
@@ -128,10 +129,10 @@ class TestSessionsEndpoint:
             json={"project_root": str(tmp_path)},
         )
         session_id = create_response.json()["id"]
-        
+
         # Get session
         response = await test_client.get(f"/api/v1/sessions/{session_id}")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == session_id
@@ -141,7 +142,7 @@ class TestSessionsEndpoint:
     async def test_get_nonexistent_session(self, test_client: AsyncClient) -> None:
         """Test getting a session that doesn't exist."""
         response = await test_client.get("/api/v1/sessions/sess_notfound")
-        
+
         assert response.status_code == 404
         data = response.json()
         assert data["success"] is False
@@ -156,12 +157,12 @@ class TestSessionsEndpoint:
             json={"project_root": str(tmp_path)},
         )
         session_id = create_response.json()["id"]
-        
+
         # Delete session
         response = await test_client.delete(f"/api/v1/sessions/{session_id}")
-        
+
         assert response.status_code == 204
-        
+
         # Verify it's gone
         get_response = await test_client.get(f"/api/v1/sessions/{session_id}")
         assert get_response.status_code == 404
@@ -170,7 +171,7 @@ class TestSessionsEndpoint:
     async def test_delete_nonexistent_session(self, test_client: AsyncClient) -> None:
         """Test deleting a session that doesn't exist."""
         response = await test_client.delete("/api/v1/sessions/sess_notfound")
-        
+
         assert response.status_code == 404
 
 
@@ -186,7 +187,7 @@ class TestBreakpointsEndpoint:
             json={"project_root": str(tmp_path)},
         )
         session_id = create_response.json()["id"]
-        
+
         # Set breakpoints
         response = await test_client.post(
             f"/api/v1/sessions/{session_id}/breakpoints",
@@ -198,7 +199,7 @@ class TestBreakpointsEndpoint:
                 ],
             },
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data["breakpoints"]) == 2
@@ -215,7 +216,7 @@ class TestBreakpointsEndpoint:
             json={"project_root": str(tmp_path)},
         )
         session_id = create_response.json()["id"]
-        
+
         # Set breakpoints
         await test_client.post(
             f"/api/v1/sessions/{session_id}/breakpoints",
@@ -224,10 +225,10 @@ class TestBreakpointsEndpoint:
                 "breakpoints": [{"line": 10}],
             },
         )
-        
+
         # List breakpoints
         response = await test_client.get(f"/api/v1/sessions/{session_id}/breakpoints")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "/path/to/file.py" in data["files"]
@@ -242,7 +243,7 @@ class TestBreakpointsEndpoint:
             json={"project_root": str(tmp_path)},
         )
         session_id = create_response.json()["id"]
-        
+
         # Set breakpoints
         await test_client.post(
             f"/api/v1/sessions/{session_id}/breakpoints",
@@ -251,12 +252,12 @@ class TestBreakpointsEndpoint:
                 "breakpoints": [{"line": 10}],
             },
         )
-        
+
         # Clear breakpoints
         response = await test_client.delete(f"/api/v1/sessions/{session_id}/breakpoints")
-        
+
         assert response.status_code == 204
-        
+
         # Verify cleared
         list_response = await test_client.get(f"/api/v1/sessions/{session_id}/breakpoints")
         assert list_response.json()["files"] == {}

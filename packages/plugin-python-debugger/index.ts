@@ -1,6 +1,6 @@
 /**
  * OpenCode Python Debugger Plugin
- * 
+ *
  * Provides custom tools for debugging Python code via the OpenCode Debug Relay Server.
  * The server must be running at http://127.0.0.1:5679 (or configured via OPENCODE_DEBUG_HOST/PORT).
  */
@@ -20,12 +20,12 @@ async function request(path: string, options?: RequestInit) {
       ...options?.headers,
     },
   })
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }))
     throw new Error(`Debug server error: ${error.message || error.detail || response.statusText}`)
   }
-  
+
   return response.json()
 }
 
@@ -42,7 +42,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
   } catch {
     await ctx.client.app.log({
       service: "python-debugger",
-      level: "warn", 
+      level: "warn",
       message: "Debug server not available - debug tools will fail until server is started",
       extra: { url: BASE_URL },
     })
@@ -123,7 +123,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
               breakpoints: args.breakpoints,
             }),
           })
-          const bps = result.breakpoints.map((bp: any) => 
+          const bps = result.breakpoints.map((bp: any) =>
             `  Line ${bp.line}: ${bp.verified ? 'verified' : 'pending'}${bp.message ? ` (${bp.message})` : ''}`
           ).join('\n')
           return `Set ${result.breakpoints.length} breakpoint(s) in ${args.source}:\n${bps}`
@@ -214,7 +214,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
         },
         async execute(args) {
           const session = await request(`/sessions/${args.session_id}`)
-          
+
           let events: any[] = []
           if (args.poll_events !== false) {
             const eventsResult = await request(
@@ -222,11 +222,11 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
             )
             events = eventsResult.events || []
           }
-          
+
           let output = `Session: ${session.id}\nState: ${session.state}`
           if (session.stop_reason) output += `\nStop reason: ${session.stop_reason}`
           if (session.current_thread_id) output += `\nCurrent thread: ${session.current_thread_id}`
-          
+
           if (events.length > 0) {
             output += `\n\nRecent events:`
             for (const event of events) {
@@ -234,7 +234,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
               if (event.data?.reason) output += ` (${event.data.reason})`
             }
           }
-          
+
           return output
         },
       }),
@@ -252,19 +252,19 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
           const result = await request(
             `/sessions/${args.session_id}/stacktrace?thread_id=${args.thread_id ?? 1}`
           )
-          
+
           if (!result.frames || result.frames.length === 0) {
             return "No stack frames available"
           }
-          
+
           let output = `Stack trace (${result.frames.length} frames):`
           for (const frame of result.frames) {
-            const location = frame.source?.path 
+            const location = frame.source?.path
               ? `${frame.source.path}:${frame.line}`
               : `<unknown>:${frame.line}`
             output += `\n  #${frame.id} ${frame.name} at ${location}`
           }
-          
+
           return output
         },
       }),
@@ -285,7 +285,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
             const result = await request(
               `/sessions/${args.session_id}/scopes?frame_id=${args.frame_id}`
             )
-            
+
             let output = `Scopes for frame ${args.frame_id}:`
             for (const scope of result.scopes) {
               output += `\n  ${scope.name} (ref: ${scope.variables_reference})`
@@ -294,17 +294,17 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
             output += `\n\nUse debug-variables with variables_ref to inspect a scope`
             return output
           }
-          
+
           if (args.variables_ref !== undefined) {
             // Get variables for a reference
             const result = await request(
               `/sessions/${args.session_id}/variables?ref=${args.variables_ref}`
             )
-            
+
             if (!result.variables || result.variables.length === 0) {
               return "No variables in this scope"
             }
-            
+
             let output = `Variables:`
             for (const v of result.variables) {
               output += `\n  ${v.name}: ${v.value}`
@@ -313,7 +313,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
             }
             return output
           }
-          
+
           return "Provide either frame_id (to get scopes) or variables_ref (to get variables)"
         },
       }),
@@ -337,7 +337,7 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
               context: "repl",
             }),
           })
-          
+
           let output = `${args.expression} = ${result.result}`
           if (result.type) output += `\nType: ${result.type}`
           if (result.variables_reference > 0) {
@@ -360,21 +360,21 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
           const result = await request(
             `/sessions/${args.session_id}/output?limit=${args.lines ?? 100}`
           )
-          
+
           if (!result.lines || result.lines.length === 0) {
             return "No output captured"
           }
-          
+
           let output = `Program output (${result.total} total lines):`
           for (const line of result.lines) {
             const prefix = line.category === "stderr" ? "[err] " : ""
             output += `\n${prefix}${line.content}`
           }
-          
+
           if (result.has_more) {
             output += `\n... (${result.total - result.lines.length} more lines)`
           }
-          
+
           return output
         },
       }),
@@ -403,18 +403,18 @@ export const PythonDebuggerPlugin: Plugin = async (ctx) => {
         args: {},
         async execute() {
           const result = await request("/sessions")
-          
+
           if (!result.sessions || result.sessions.length === 0) {
             return "No active debug sessions"
           }
-          
+
           let output = `Active debug sessions (${result.total}):`
           for (const session of result.sessions) {
             output += `\n  ${session.id}: ${session.state}`
             if (session.name) output += ` (${session.name})`
             output += ` - ${session.project_root}`
           }
-          
+
           return output
         },
       }),

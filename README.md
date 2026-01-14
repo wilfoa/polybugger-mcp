@@ -1,234 +1,280 @@
-# OpenCode Debug Relay Server
+# Python Debugger MCP
 
-An HTTP relay server that enables AI coding agents to perform full interactive debugging of Python applications via debugpy/DAP (Debug Adapter Protocol).
+[![PyPI version](https://img.shields.io/pypi/v/python-debugger-mcp)](https://pypi.org/project/python-debugger-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/wilfoa/python-debugger-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/wilfoa/python-debugger-mcp/actions/workflows/tests.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-## Features
+A Model Context Protocol (MCP) server that enables AI agents to debug Python code interactively. Set breakpoints, step through code, inspect variables, and evaluate expressions - all through natural conversation with your AI assistant.
 
-- **Full debugging capabilities** - Set breakpoints, step through code, inspect variables
-- **REST API** - Simple HTTP/JSON interface for AI agents
-- **Multiple sessions** - Support up to 10 concurrent debug sessions
-- **Breakpoint persistence** - Breakpoints are saved per-project
-- **Output capture** - Capture stdout/stderr with 50MB buffer
-- **Polling-based events** - No WebSocket required
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install%20MCP-blue?style=for-the-badge&logo=cursor)](https://cursor.com/install-mcp?name=python-debugger&config=eyJjb21tYW5kIjoicHl0aG9uIiwiYXJncyI6WyItbSIsInB5dGhvbl9kZWJ1Z2dlcl9tY3AubWNwX3NlcnZlciJdfQ==)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install%20Server-0098FF?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522python-debugger%2522%252C%2522command%2522%253A%2522python%2522%252C%2522args%2522%253A%255B%2522-m%2522%252C%2522python_debugger_mcp.mcp_server%2522%255D%257D)
+
+## Demo
+
+https://github.com/wilfoa/python-debugger-mcp/raw/main/docs/demo.mov
+
+## Key Features
+
+- **Full Interactive Debugging** - Set breakpoints, step over/into/out, pause, and continue
+- **Variable Inspection** - View locals, globals, and evaluate arbitrary expressions
+- **Watch Expressions** - Track values across debug steps
+- **Session Recovery** - Resume debugging after server restart
+- **Multi-Client Support** - Works with Cursor, VS Code, Claude Desktop, and more
 
 ## Installation
 
+First, install the package:
+
 ```bash
-# Clone the repository
-git clone https://github.com/opencode/opencode-debugger.git
-cd opencode-debugger
-
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install the package
-pip install -e ".[dev]"
+pip install python-debugger-mcp
 ```
+
+Then configure your MCP client:
+
+<details>
+<summary><b>Cursor</b></summary>
+
+Add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "python-debugger": {
+      "command": "python",
+      "args": ["-m", "python_debugger_mcp.mcp_server"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>VS Code</b></summary>
+
+Use the VS Code CLI:
+
+```bash
+code --add-mcp '{"name":"python-debugger","command":"python","args":["-m","python_debugger_mcp.mcp_server"]}'
+```
+
+Or add to your MCP settings manually.
+</details>
+
+<details>
+<summary><b>Claude Code</b></summary>
+
+```bash
+claude mcp add python-debugger -- python -m python_debugger_mcp.mcp_server
+```
+</details>
+
+<details>
+<summary><b>Claude Desktop</b></summary>
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "python-debugger": {
+      "command": "python",
+      "args": ["-m", "python_debugger_mcp.mcp_server"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>OpenCode</b></summary>
+
+Add to `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "mcp": {
+    "python-debugger": {
+      "type": "local",
+      "command": ["python", "-m", "python_debugger_mcp.mcp_server"],
+      "enabled": true
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+Add to your Windsurf MCP config:
+
+```json
+{
+  "mcpServers": {
+    "python-debugger": {
+      "command": "python",
+      "args": ["-m", "python_debugger_mcp.mcp_server"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Cline</b></summary>
+
+Add to your `cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "python-debugger": {
+      "command": "python",
+      "args": ["-m", "python_debugger_mcp.mcp_server"],
+      "disabled": false
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Goose</b></summary>
+
+Go to Settings > Extensions > Add custom extension:
+- Type: STDIO
+- Command: `python -m python_debugger_mcp.mcp_server`
+</details>
+
+<details>
+<summary><b>Docker</b></summary>
+
+```bash
+docker run -i --rm ghcr.io/wilfoa/python-debugger-mcp
+```
+
+Or in your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "python-debugger": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "ghcr.io/wilfoa/python-debugger-mcp"]
+    }
+  }
+}
+```
+</details>
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `debug_create_session` | Create a new debug session for a project |
+| `debug_list_sessions` | List all active debug sessions |
+| `debug_get_session` | Get detailed session information |
+| `debug_terminate_session` | End a debug session and clean up |
+| `debug_set_breakpoints` | Set breakpoints in source files (with optional conditions) |
+| `debug_get_breakpoints` | List all breakpoints for a session |
+| `debug_clear_breakpoints` | Remove breakpoints from files |
+| `debug_launch` | Launch a Python program for debugging |
+| `debug_continue` | Continue execution until next breakpoint |
+| `debug_step_over` | Step to the next line (skip function calls) |
+| `debug_step_into` | Step into a function call |
+| `debug_step_out` | Step out of the current function |
+| `debug_pause` | Pause a running program |
+| `debug_get_stacktrace` | Get the current call stack |
+| `debug_get_scopes` | Get variable scopes (locals, globals) |
+| `debug_get_variables` | Get variables in a scope |
+| `debug_evaluate` | Evaluate a Python expression |
+| `debug_add_watch` | Add a watch expression |
+| `debug_remove_watch` | Remove a watch expression |
+| `debug_evaluate_watches` | Evaluate all watch expressions |
+| `debug_poll_events` | Poll for debug events (stopped, terminated, etc.) |
+| `debug_get_output` | Get program stdout/stderr |
+| `debug_list_recoverable` | List sessions that can be recovered |
+| `debug_recover_session` | Recover a session from previous server run |
 
 ## Quick Start
 
-### Start the Server
+1. **Install the package:**
+   ```bash
+   pip install python-debugger-mcp
+   ```
 
-```bash
-# Start with default settings (localhost:5679)
-opencode-debugger
+2. **Configure your MCP client** (see Installation above)
 
-# Or with uvicorn directly
-uvicorn opencode_debugger.main:app --reload
+3. **Start debugging:** Ask your AI assistant:
+   > "Debug my script.py - set a breakpoint on line 15 and show me the variables when it stops"
+
+## Example Workflow
+
 ```
+You: Debug tests/test_example.py - I want to see why the calculate function returns wrong results
 
-### Basic Debug Session
+AI: I'll create a debug session and set breakpoints in the calculate function.
+    [Creates session, sets breakpoints, launches program]
 
-```bash
-# 1. Create a session
-curl -X POST http://localhost:5679/api/v1/sessions \
-  -H "Content-Type: application/json" \
-  -d '{"project_root": "/path/to/your/project"}'
+    The program stopped at line 23. Here are the local variables:
+    - x = 10
+    - y = 5
+    - result = 50  # This should be 15!
 
-# Response: {"id": "sess_abc12345", "state": "created", ...}
-
-# 2. Set a breakpoint
-curl -X POST http://localhost:5679/api/v1/sessions/sess_abc12345/breakpoints \
-  -H "Content-Type: application/json" \
-  -d '{"source": "/path/to/your/script.py", "breakpoints": [{"line": 10}]}'
-
-# 3. Launch the program
-curl -X POST http://localhost:5679/api/v1/sessions/sess_abc12345/launch \
-  -H "Content-Type: application/json" \
-  -d '{"program": "/path/to/your/script.py"}'
-
-# 4. Poll for events (will return when breakpoint is hit)
-curl "http://localhost:5679/api/v1/sessions/sess_abc12345/events?timeout=30"
-
-# 5. Get stack trace
-curl http://localhost:5679/api/v1/sessions/sess_abc12345/stacktrace
-
-# 6. Get variables
-curl "http://localhost:5679/api/v1/sessions/sess_abc12345/scopes?frame_id=0"
-curl "http://localhost:5679/api/v1/sessions/sess_abc12345/variables?ref=1000"
-
-# 7. Continue execution
-curl -X POST http://localhost:5679/api/v1/sessions/sess_abc12345/continue
-
-# 8. Terminate session
-curl -X DELETE http://localhost:5679/api/v1/sessions/sess_abc12345
+    I see the issue - you're using multiplication instead of addition on line 24.
 ```
-
-## API Documentation
-
-Once the server is running, visit:
-- Swagger UI: http://localhost:5679/docs
-- ReDoc: http://localhost:5679/redoc
-- OpenAPI JSON: http://localhost:5679/openapi.json
-
-## API Endpoints
-
-### Sessions
-- `POST /api/v1/sessions` - Create a new debug session
-- `GET /api/v1/sessions` - List all sessions
-- `GET /api/v1/sessions/{id}` - Get session details
-- `DELETE /api/v1/sessions/{id}` - Terminate a session
-
-### Program Control
-- `POST /api/v1/sessions/{id}/launch` - Launch a program
-- `POST /api/v1/sessions/{id}/attach` - Attach to a running process
-
-### Breakpoints
-- `POST /api/v1/sessions/{id}/breakpoints` - Set breakpoints for a file
-- `GET /api/v1/sessions/{id}/breakpoints` - List all breakpoints
-- `DELETE /api/v1/sessions/{id}/breakpoints` - Clear all breakpoints
-
-### Execution Control
-- `POST /api/v1/sessions/{id}/continue` - Continue execution
-- `POST /api/v1/sessions/{id}/pause` - Pause execution
-- `POST /api/v1/sessions/{id}/step-over` - Step to next line
-- `POST /api/v1/sessions/{id}/step-into` - Step into function
-- `POST /api/v1/sessions/{id}/step-out` - Step out of function
-
-### Inspection
-- `GET /api/v1/sessions/{id}/threads` - List threads
-- `GET /api/v1/sessions/{id}/stacktrace` - Get stack trace
-- `GET /api/v1/sessions/{id}/scopes` - Get variable scopes
-- `GET /api/v1/sessions/{id}/variables` - Get variables
-- `POST /api/v1/sessions/{id}/evaluate` - Evaluate expression
-
-### Output
-- `GET /api/v1/sessions/{id}/output` - Get captured output
-- `GET /api/v1/sessions/{id}/events` - Poll for debug events
-
-### Server
-- `GET /api/v1/health` - Health check
-- `GET /api/v1/info` - Server info
 
 ## Configuration
 
-Environment variables (prefix with `OPENCODE_DEBUG_`):
+Environment variables (prefix with `PYTHON_DEBUGGER_MCP_`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HOST` | `127.0.0.1` | Server bind address |
-| `PORT` | `5679` | Server port |
-| `MAX_SESSIONS` | `10` | Maximum concurrent sessions |
-| `SESSION_TIMEOUT_SECONDS` | `3600` | Session idle timeout |
-| `OUTPUT_BUFFER_MAX_BYTES` | `52428800` | Output buffer size (50MB) |
-| `DATA_DIR` | `~/.opencode-debugger` | Data directory |
-| `LOG_LEVEL` | `INFO` | Log level |
+| `PORT` | `5679` | Server port (for HTTP mode) |
+| `MAX_SESSIONS` | `10` | Maximum concurrent debug sessions |
+| `SESSION_TIMEOUT_SECONDS` | `3600` | Session idle timeout (1 hour) |
+| `DATA_DIR` | `~/.python-debugger-mcp` | Data directory for persistence |
+| `LOG_LEVEL` | `INFO` | Logging level |
 
 ## Development
 
 ```bash
-# Install dev dependencies
+# Clone and setup
+git clone https://github.com/wilfoa/python-debugger-mcp.git
+cd python-debugger-mcp
+python -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
 
 # Run tests
-pytest
+make test
 
-# Run with coverage
-pytest --cov=opencode_debugger --cov-report=html
+# Run linter
+make lint
 
-# Type checking
-mypy src/opencode_debugger
-
-# Linting
-ruff check src tests
-ruff format src tests
+# Run type checker
+make typecheck
 ```
 
 ## Architecture
 
 ```
-┌─────────────┐     HTTP/JSON      ┌─────────────────┐     DAP      ┌──────────┐
-│  AI Agent   │ <----------------> │  Debug Relay    │ <----------> │  debugpy │
-│  (Claude)   │                    │  Server         │              │          │
-└─────────────┘                    └─────────────────┘              └──────────┘
+AI Agent  <-->  MCP Server  <-->  debugpy (DAP)  <-->  Python Process
 ```
 
-The relay server:
-1. Receives HTTP requests from AI agents
-2. Translates them to DAP protocol messages
-3. Communicates with debugpy subprocess
-4. Returns results as JSON responses
+The MCP server translates tool calls to Debug Adapter Protocol (DAP) messages, enabling full debugging capabilities through natural language.
 
-## OpenCode Integration
+## Requirements
 
-This project includes OpenCode agent skill and plugin packages for seamless integration with OpenCode AI coding agents.
+- Python 3.10 or higher
+- Works on macOS, Linux, and Windows
 
-### Agent Skill
+## Contributing
 
-The skill provides instructions and API documentation for agents to debug Python code.
-
-**Installation:**
-```bash
-# Project-level
-mkdir -p .opencode/skill/python-debug
-cp packages/skill-python-debug/SKILL.md .opencode/skill/python-debug/
-
-# Or global
-mkdir -p ~/.config/opencode/skill/python-debug
-cp packages/skill-python-debug/SKILL.md ~/.config/opencode/skill/python-debug/
-```
-
-### Plugin
-
-The plugin provides custom tools (`debug-*`) that agents can call directly.
-
-**Installation (local):**
-```bash
-# Project-level
-mkdir -p .opencode/plugin
-cp packages/plugin-python-debugger/index.ts .opencode/plugin/python-debugger.ts
-
-# Create package.json for dependencies
-echo '{"dependencies": {"@opencode-ai/plugin": "latest"}}' > .opencode/package.json
-```
-
-**Installation (npm - when published):**
-```json
-{
-  "plugin": ["opencode-python-debugger"]
-}
-```
-
-### Available Tools (Plugin)
-
-| Tool | Description |
-|------|-------------|
-| `debug-session-create` | Create a new debug session |
-| `debug-sessions` | List all active sessions |
-| `debug-launch` | Launch a program in debug mode |
-| `debug-breakpoints` | Set breakpoints in a file |
-| `debug-continue` | Continue execution |
-| `debug-step-over` | Step to next line |
-| `debug-step-into` | Step into function |
-| `debug-step-out` | Step out of function |
-| `debug-status` | Get session state and events |
-| `debug-stacktrace` | Get call stack |
-| `debug-variables` | Get variables in scope |
-| `debug-evaluate` | Evaluate expression |
-| `debug-output` | Get program output |
-| `debug-terminate` | Terminate session |
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) for details.

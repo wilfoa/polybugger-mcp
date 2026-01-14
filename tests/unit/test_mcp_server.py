@@ -1,8 +1,6 @@
 """Tests for MCP server tools."""
 
-import pytest
-
-from opencode_debugger.mcp_server import mcp
+from python_debugger_mcp.mcp_server import mcp
 
 
 class TestMCPServerRegistration:

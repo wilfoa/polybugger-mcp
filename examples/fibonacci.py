@@ -16,7 +16,7 @@ def fibonacci_iterative(n: int) -> int:
         return 0
     if n == 1:
         return 1
-    
+
     a, b = 0, 1
     for i in range(2, n + 1):
         a, b = b, a + b
@@ -37,16 +37,16 @@ def main():
     """Main entry point."""
     print("Fibonacci Calculator")
     print("=" * 40)
-    
+
     # Calculate first 15 Fibonacci numbers
     count = 15
     sequence = fibonacci_sequence(count)
-    
+
     print("=" * 40)
     print(f"Generated {len(sequence)} numbers")
     print(f"Sum: {sum(sequence)}")
     print(f"Max: {max(sequence)}")
-    
+
     # Verify recursive matches iterative
     print("\nVerifying recursive vs iterative...")
     for i in range(10):
@@ -54,7 +54,7 @@ def main():
         iterative = fibonacci_iterative(i)
         status = "OK" if recursive == iterative else "MISMATCH"
         print(f"  fib({i}): recursive={recursive}, iterative={iterative} [{status}]")
-    
+
     print("\nDone!")
     return sequence
 

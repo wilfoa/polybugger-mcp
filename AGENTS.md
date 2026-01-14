@@ -1,13 +1,13 @@
-# OpenCode Debug Relay Server
+# Python Debugger MCP
 
 ## Project Overview
 
-This is a Python HTTP server that enables AI agents to debug Python code interactively. It translates REST API calls to DAP (Debug Adapter Protocol) messages for debugpy.
+This is a Python MCP (Model Context Protocol) server that enables AI agents to debug Python code interactively. It translates MCP tool calls to DAP (Debug Adapter Protocol) messages for debugpy.
 
 ## Tech Stack
 
-- **Language:** Python 3.13+
-- **Framework:** FastAPI with uvicorn
+- **Language:** Python 3.10+
+- **Framework:** FastAPI with uvicorn, MCP SDK
 - **Debugger:** debugpy (Python debugger)
 - **Testing:** pytest with pytest-asyncio
 - **Package Manager:** pip with pyproject.toml
@@ -15,7 +15,7 @@ This is a Python HTTP server that enables AI agents to debug Python code interac
 ## Project Structure
 
 ```
-src/opencode_debugger/
+src/python_debugger_mcp/
   api/           # FastAPI routers (sessions, breakpoints, execution, inspection, output)
   adapters/      # DAP client and debugpy adapter
   core/          # Session management, events, exceptions
@@ -24,6 +24,7 @@ src/opencode_debugger/
   utils/         # Output buffer
   config.py      # Pydantic Settings configuration
   main.py        # FastAPI app entry point
+  mcp_server.py  # MCP server with debug_* tools
 
 tests/
   unit/          # Unit tests for buffer and persistence
@@ -37,8 +38,11 @@ tests/
 # Activate virtual environment
 source .venv/bin/activate
 
-# Start the server
-python -m opencode_debugger.main
+# Start the HTTP server
+python -m python_debugger_mcp.main
+
+# Start the MCP server (stdio)
+python -m python_debugger_mcp.mcp_server
 
 # Run tests
 pytest tests/ -v
@@ -46,21 +50,27 @@ pytest tests/ -v
 
 ## Debugging This Project
 
-This project includes its own debugging tools as an OpenCode skill and plugin.
+This project includes its own debugging tools as MCP tools.
 
 ### Using the Debug Tools
 
-1. **Start the debug server** (in a separate terminal):
-   ```bash
-   source .venv/bin/activate
-   python -m opencode_debugger.main
+1. **Start the MCP server** - Configure your MCP client to use:
+   ```json
+   {
+     "mcpServers": {
+       "python-debugger": {
+         "command": "python",
+         "args": ["-m", "python_debugger_mcp.mcp_server"]
+       }
+     }
+   }
    ```
 
-2. **Use the debug-* tools** to debug Python code in this project:
-   - `debug-session-create` - Create a session with project_root="/Users/amir/Development/opencode_debugger"
-   - `debug-breakpoints` - Set breakpoints in source files
-   - `debug-launch` - Launch test scripts or the server itself
-   - `debug-stacktrace`, `debug-variables`, `debug-evaluate` - Inspect state
+2. **Use the debug_* tools** to debug Python code in this project:
+   - `debug_create_session` - Create a session with project_root
+   - `debug_set_breakpoints` - Set breakpoints in source files
+   - `debug_launch` - Launch test scripts or the server itself
+   - `debug_get_stacktrace`, `debug_get_variables`, `debug_evaluate` - Inspect state
 
 ### Debugging Tests
 
@@ -78,7 +88,8 @@ To debug a failing test:
 
 ## Key Files
 
-- `src/opencode_debugger/adapters/debugpy_adapter.py` - Core debugpy communication
-- `src/opencode_debugger/core/session.py` - Session management and state machine
-- `src/opencode_debugger/api/sessions.py` - Session API endpoints
+- `src/python_debugger_mcp/adapters/debugpy_adapter.py` - Core debugpy communication
+- `src/python_debugger_mcp/core/session.py` - Session management and state machine
+- `src/python_debugger_mcp/mcp_server.py` - MCP server with all debug tools
+- `src/python_debugger_mcp/api/sessions.py` - REST API session endpoints
 - `tests/e2e/test_debug_session.py` - End-to-end debugging tests

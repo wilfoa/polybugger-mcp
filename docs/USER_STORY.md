@@ -1,9 +1,9 @@
 # User Story: Python Debug Relay Server
 
-**Document Version:** 1.0  
-**Created:** January 13, 2026  
-**Status:** Discovery Phase  
-**Priority:** High  
+**Document Version:** 1.0
+**Created:** January 13, 2026
+**Status:** Discovery Phase
+**Priority:** High
 **Epic:** AI-Assisted Development Tooling
 
 ---
@@ -62,8 +62,8 @@ By creating an HTTP bridge to debugpy, we enable AI agents to:
 
 ### Primary Persona: AI Coding Agent
 
-**Name:** Agent Claude  
-**Type:** AI-powered coding assistant  
+**Name:** Agent Claude
+**Type:** AI-powered coding assistant
 **Environment:** CLI tool, IDE extension, or web interface
 
 **Characteristics:**
@@ -95,8 +95,8 @@ By creating an HTTP bridge to debugpy, we enable AI agents to:
 
 ### Secondary Persona: Automation Developer
 
-**Name:** Dana DevOps  
-**Role:** Developer automating debug workflows  
+**Name:** Dana DevOps
+**Role:** Developer automating debug workflows
 **Environment:** CI/CD pipelines, testing frameworks, custom tooling
 
 **Characteristics:**
@@ -127,8 +127,8 @@ By creating an HTTP bridge to debugpy, we enable AI agents to:
 
 ### Tertiary Persona: Remote Developer
 
-**Name:** Ray Remote  
-**Role:** Developer working with containerized/remote Python apps  
+**Name:** Ray Remote
+**Role:** Developer working with containerized/remote Python apps
 **Environment:** Docker, Kubernetes, remote servers
 
 **Characteristics:**

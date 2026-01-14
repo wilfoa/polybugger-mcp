@@ -1,7 +1,7 @@
 # Low-Level Design: Backend Implementation
 
-**Project:** OpenCode Debug Relay Server  
-**Version:** 1.0  
+**Project:** OpenCode Debug Relay Server
+**Version:** 1.0
 **Date:** January 13, 2026
 
 ---
@@ -76,40 +76,40 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    
+
     model_config = SettingsConfigDict(
         env_prefix="OPENCODE_DEBUG_",
         env_file=".env",
         env_file_encoding="utf-8",
     )
-    
+
     # Server settings
     host: str = "127.0.0.1"
     port: int = 5679
     debug: bool = False
-    
+
     # Session limits
     max_sessions: int = 10
     session_timeout_seconds: int = 3600  # 1 hour
     session_max_lifetime_seconds: int = 14400  # 4 hours
-    
+
     # Output buffer
     output_buffer_max_bytes: int = 50 * 1024 * 1024  # 50MB
-    
+
     # Persistence
     data_dir: Path = Path.home() / ".opencode-debugger"
-    
+
     # DAP settings
     dap_timeout_seconds: float = 30.0
     dap_launch_timeout_seconds: float = 60.0
-    
+
     # Python settings
     default_python_path: str = "python3"
-    
+
     @property
     def breakpoints_dir(self) -> Path:
         return self.data_dir / "breakpoints"
-    
+
     @property
     def sessions_dir(self) -> Path:
         return self.data_dir / "sessions"
@@ -132,11 +132,11 @@ from typing import Any, Optional
 
 class DebugRelayError(Exception):
     """Base exception for all debug relay errors."""
-    
+
     def __init__(
-        self, 
-        code: str, 
-        message: str, 
+        self,
+        code: str,
+        message: str,
         details: Optional[dict[str, Any]] = None
     ):
         self.code = code
@@ -152,7 +152,7 @@ class SessionError(DebugRelayError):
 
 class SessionNotFoundError(SessionError):
     """Session with given ID does not exist."""
-    
+
     def __init__(self, session_id: str):
         super().__init__(
             code="SESSION_NOT_FOUND",
@@ -163,7 +163,7 @@ class SessionNotFoundError(SessionError):
 
 class SessionLimitError(SessionError):
     """Maximum concurrent sessions reached."""
-    
+
     def __init__(self, max_sessions: int):
         super().__init__(
             code="SESSION_LIMIT_REACHED",
@@ -174,7 +174,7 @@ class SessionLimitError(SessionError):
 
 class InvalidSessionStateError(SessionError):
     """Operation not valid in current session state."""
-    
+
     def __init__(self, session_id: str, current_state: str, required_states: list[str]):
         super().__init__(
             code="INVALID_SESSION_STATE",
@@ -195,7 +195,7 @@ class DAPError(DebugRelayError):
 
 class DAPTimeoutError(DAPError):
     """DAP request timed out."""
-    
+
     def __init__(self, command: str, timeout: float):
         super().__init__(
             code="DEBUGPY_TIMEOUT",
@@ -206,7 +206,7 @@ class DAPTimeoutError(DAPError):
 
 class DAPConnectionError(DAPError):
     """Failed to connect to debugpy."""
-    
+
     def __init__(self, reason: str):
         super().__init__(
             code="DEBUGPY_ERROR",
@@ -217,7 +217,7 @@ class DAPConnectionError(DAPError):
 
 class LaunchError(DAPError):
     """Failed to launch debug target."""
-    
+
     def __init__(self, reason: str, details: Optional[dict] = None):
         super().__init__(
             code="LAUNCH_FAILED",
@@ -238,7 +238,7 @@ class BreakpointError(DebugRelayError):
 
 class SessionExpiredError(SessionError):
     """Session has expired due to inactivity."""
-    
+
     def __init__(self, session_id: str):
         super().__init__(
             code="SESSION_EXPIRED",
@@ -249,7 +249,7 @@ class SessionExpiredError(SessionError):
 
 class BreakpointNotFoundError(BreakpointError):
     """Breakpoint with given ID does not exist."""
-    
+
     def __init__(self, session_id: str, breakpoint_id: str):
         super().__init__(
             code="BREAKPOINT_NOT_FOUND",
@@ -260,7 +260,7 @@ class BreakpointNotFoundError(BreakpointError):
 
 class ThreadNotFoundError(DebugRelayError):
     """Thread with given ID does not exist."""
-    
+
     def __init__(self, session_id: str, thread_id: int):
         super().__init__(
             code="THREAD_NOT_FOUND",
@@ -271,7 +271,7 @@ class ThreadNotFoundError(DebugRelayError):
 
 class FrameNotFoundError(DebugRelayError):
     """Stack frame with given ID does not exist."""
-    
+
     def __init__(self, session_id: str, frame_id: int):
         super().__init__(
             code="FRAME_NOT_FOUND",
@@ -282,7 +282,7 @@ class FrameNotFoundError(DebugRelayError):
 
 class VariableNotFoundError(DebugRelayError):
     """Variable reference does not exist."""
-    
+
     def __init__(self, session_id: str, variable_ref: int):
         super().__init__(
             code="VARIABLE_NOT_FOUND",
@@ -320,10 +320,10 @@ from opencode_debugger.utils.output_buffer import OutputBuffer
 
 class SessionState(str, Enum):
     """Possible session states.
-    
+
     Note: Values are lowercase strings to match API contract.
     """
-    
+
     CREATED = "created"
     LAUNCHING = "launching"
     RUNNING = "running"
@@ -334,7 +334,7 @@ class SessionState(str, Enum):
 
 class Session:
     """Represents a single debug session."""
-    
+
     def __init__(
         self,
         session_id: str,
@@ -344,26 +344,26 @@ class Session:
         self.id = session_id
         self.project_root = project_root
         self.name = name or f"session-{session_id[:8]}"
-        
+
         self._state = SessionState.CREATED
         self._state_lock = asyncio.Lock()
-        
+
         self.created_at = datetime.now(timezone.utc)
         self.last_activity = self.created_at
-        
+
         # Components
         self.adapter: Optional[DebugpyAdapter] = None
         self.output_buffer = OutputBuffer(max_size=settings.output_buffer_max_bytes)
         self.event_queue = EventQueue()
-        
+
         # Debug state
         self.current_thread_id: Optional[int] = None
         self.stop_reason: Optional[str] = None
-    
+
     @property
     def state(self) -> SessionState:
         return self._state
-    
+
     async def transition_to(self, new_state: SessionState) -> None:
         """Thread-safe state transition."""
         async with self._state_lock:
@@ -373,18 +373,18 @@ class Session:
                 SessionState.RUNNING: {SessionState.PAUSED, SessionState.TERMINATED, SessionState.ERROR},
                 SessionState.PAUSED: {SessionState.RUNNING, SessionState.TERMINATED, SessionState.ERROR},
             }
-            
+
             if self._state in valid_transitions:
                 if new_state not in valid_transitions[self._state]:
                     raise InvalidSessionStateError(
-                        self.id, 
-                        self._state.value, 
+                        self.id,
+                        self._state.value,
                         [s.value for s in valid_transitions[self._state]]
                     )
-            
+
             self._state = new_state
             self.last_activity = datetime.now(timezone.utc)
-    
+
     def require_state(self, *states: SessionState) -> None:
         """Raise if not in one of the required states."""
         if self._state not in states:
@@ -393,7 +393,7 @@ class Session:
                 self._state.value,
                 [s.value for s in states]
             )
-    
+
     async def initialize_adapter(self) -> None:
         """Create and initialize the debugpy adapter."""
         self.adapter = DebugpyAdapter(
@@ -402,16 +402,16 @@ class Session:
             event_callback=self.event_queue.put,
         )
         await self.adapter.initialize()
-    
+
     async def cleanup(self) -> None:
         """Clean up session resources."""
         if self.adapter:
             await self.adapter.disconnect()
             self.adapter = None
-        
+
         self.output_buffer.clear()
         self.event_queue.clear()
-    
+
     def to_info(self) -> SessionInfo:
         """Convert to API response model."""
         return SessionInfo(
@@ -428,18 +428,18 @@ class Session:
 
 class SessionManager:
     """Manages all debug sessions."""
-    
+
     def __init__(self, breakpoint_store: BreakpointStore):
         self._sessions: dict[str, Session] = {}
         self._lock = asyncio.Lock()
         self._breakpoint_store = breakpoint_store
         self._cleanup_task: Optional[asyncio.Task] = None
-    
+
     async def start(self) -> None:
         """Start the session manager and background tasks."""
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
         await self._recover_sessions()
-    
+
     async def stop(self) -> None:
         """Stop the session manager and cleanup all sessions."""
         if self._cleanup_task:
@@ -448,36 +448,36 @@ class SessionManager:
                 await self._cleanup_task
             except asyncio.CancelledError:
                 pass
-        
+
         # Terminate all sessions
         async with self._lock:
             for session in list(self._sessions.values()):
                 await session.cleanup()
             self._sessions.clear()
-    
+
     async def create_session(self, config: SessionConfig) -> Session:
         """Create a new debug session."""
         async with self._lock:
             if len(self._sessions) >= settings.max_sessions:
                 raise SessionLimitError(settings.max_sessions)
-            
+
             session_id = f"sess_{uuid.uuid4().hex[:8]}"
             session = Session(
                 session_id=session_id,
                 project_root=Path(config.project_root),
                 name=config.name,
             )
-            
+
             # Initialize adapter
             await session.initialize_adapter()
-            
+
             # Load existing breakpoints for this project
             breakpoints = await self._breakpoint_store.load(session.project_root)
             # Note: breakpoints will be set when launch() is called
-            
+
             self._sessions[session_id] = session
             return session
-    
+
     async def get_session(self, session_id: str) -> Session:
         """Get a session by ID."""
         async with self._lock:
@@ -486,27 +486,27 @@ class SessionManager:
                 raise SessionNotFoundError(session_id)
             session.last_activity = datetime.now(timezone.utc)
             return session
-    
+
     async def list_sessions(self) -> list[Session]:
         """List all active sessions."""
         async with self._lock:
             return list(self._sessions.values())
-    
+
     async def terminate_session(self, session_id: str) -> None:
         """Terminate and remove a session."""
         async with self._lock:
             session = self._sessions.pop(session_id, None)
             if not session:
                 raise SessionNotFoundError(session_id)
-            
+
             await session.cleanup()
-    
+
     async def _cleanup_loop(self) -> None:
         """Background task to cleanup stale sessions."""
         while True:
             await asyncio.sleep(60)  # Check every minute
             await self._cleanup_stale_sessions()
-    
+
     async def _cleanup_stale_sessions(self) -> None:
         """Remove sessions that have exceeded timeout."""
         now = datetime.now(timezone.utc)
@@ -515,15 +515,15 @@ class SessionManager:
             for session_id, session in self._sessions.items():
                 idle_seconds = (now - session.last_activity).total_seconds()
                 lifetime_seconds = (now - session.created_at).total_seconds()
-                
+
                 if (idle_seconds > settings.session_timeout_seconds or
                     lifetime_seconds > settings.session_max_lifetime_seconds):
                     stale_ids.append(session_id)
-            
+
             for session_id in stale_ids:
                 session = self._sessions.pop(session_id)
                 await session.cleanup()
-    
+
     async def _recover_sessions(self) -> None:
         """Recover sessions from persistence on startup."""
         # TODO: Implement session recovery from disk
@@ -546,12 +546,12 @@ from opencode_debugger.models.events import DebugEvent, EventType
 
 class EventQueue:
     """Thread-safe event queue for a session."""
-    
+
     def __init__(self, max_size: int = 1000):
         self._queue: asyncio.Queue[DebugEvent] = asyncio.Queue(maxsize=max_size)
         self._history: list[DebugEvent] = []
         self._max_history = 100
-    
+
     async def put(self, event_type: EventType, data: dict[str, Any]) -> None:
         """Add an event to the queue."""
         event = DebugEvent(
@@ -559,7 +559,7 @@ class EventQueue:
             timestamp=datetime.now(timezone.utc),
             data=data,
         )
-        
+
         # Try to put in queue, drop oldest if full
         try:
             self._queue.put_nowait(event)
@@ -569,12 +569,12 @@ class EventQueue:
             except asyncio.QueueEmpty:
                 pass
             self._queue.put_nowait(event)
-        
+
         # Add to history
         self._history.append(event)
         if len(self._history) > self._max_history:
             self._history.pop(0)
-    
+
     async def get(self, timeout: Optional[float] = None) -> Optional[DebugEvent]:
         """Get next event, optionally with timeout."""
         try:
@@ -583,7 +583,7 @@ class EventQueue:
             return self._queue.get_nowait()
         except (asyncio.TimeoutError, asyncio.QueueEmpty):
             return None
-    
+
     async def get_all(self) -> list[DebugEvent]:
         """Get all pending events."""
         events = []
@@ -593,7 +593,7 @@ class EventQueue:
             except asyncio.QueueEmpty:
                 break
         return events
-    
+
     def clear(self) -> None:
         """Clear all pending events."""
         while not self._queue.empty():
@@ -626,7 +626,7 @@ from opencode_debugger.models.dap import (
 
 class DAPClient:
     """Client for communicating via Debug Adapter Protocol."""
-    
+
     def __init__(
         self,
         reader: asyncio.StreamReader,
@@ -638,39 +638,39 @@ class DAPClient:
         self._writer = writer
         self._event_callback = event_callback
         self._timeout = timeout
-        
+
         self._seq = 0
         self._pending: dict[int, asyncio.Future] = {}
         self._lock = asyncio.Lock()
         self._reader_task: Optional[asyncio.Task] = None
         self._closed = False
-    
+
     async def start(self) -> None:
         """Start the message reader loop."""
         self._reader_task = asyncio.create_task(self._read_loop())
-    
+
     async def stop(self) -> None:
         """Stop the client and cleanup."""
         self._closed = True
-        
+
         if self._reader_task:
             self._reader_task.cancel()
             try:
                 await self._reader_task
             except asyncio.CancelledError:
                 pass
-        
+
         # Cancel all pending requests
         for future in self._pending.values():
             future.cancel()
         self._pending.clear()
-        
+
         self._writer.close()
         await self._writer.wait_closed()
-    
+
     async def send_request(
-        self, 
-        command: str, 
+        self,
+        command: str,
         arguments: Optional[dict] = None,
         timeout: Optional[float] = None,
     ) -> dict:
@@ -678,47 +678,47 @@ class DAPClient:
         async with self._lock:
             self._seq += 1
             seq = self._seq
-        
+
         request = DAPRequest(
             seq=seq,
             command=command,
             arguments=arguments or {},
         )
-        
+
         future: asyncio.Future = asyncio.Future()
         self._pending[seq] = future
-        
+
         try:
             await self._send_message(request.model_dump())
             response = await asyncio.wait_for(
-                future, 
+                future,
                 timeout=timeout or self._timeout
             )
-            
+
             if not response.get("success", False):
                 raise DAPError(
                     code="DAP_REQUEST_FAILED",
                     message=response.get("message", "Unknown error"),
                     details=response,
                 )
-            
+
             return response.get("body", {})
-        
+
         except asyncio.TimeoutError:
             raise DAPTimeoutError(command, timeout or self._timeout)
-        
+
         finally:
             self._pending.pop(seq, None)
-    
+
     async def _send_message(self, message: dict) -> None:
         """Send a DAP message with Content-Length header."""
         content = json.dumps(message)
         header = f"Content-Length: {len(content)}\r\n\r\n"
-        
+
         self._writer.write(header.encode("utf-8"))
         self._writer.write(content.encode("utf-8"))
         await self._writer.drain()
-    
+
     async def _read_loop(self) -> None:
         """Read and dispatch incoming DAP messages."""
         while not self._closed:
@@ -726,16 +726,16 @@ class DAPClient:
                 message = await self._read_message()
                 if message is None:
                     break
-                
+
                 await self._handle_message(message)
-            
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 if not self._closed:
                     # Log error but continue
                     print(f"DAP read error: {e}")
-    
+
     async def _read_message(self) -> Optional[dict]:
         """Read a single DAP message."""
         # Read headers
@@ -744,34 +744,34 @@ class DAPClient:
             line = await self._reader.readline()
             if not line:
                 return None
-            
+
             line = line.decode("utf-8").strip()
             if not line:
                 break
-            
+
             if ":" in line:
                 key, value = line.split(":", 1)
                 headers[key.strip()] = value.strip()
-        
+
         # Read content
         content_length = int(headers.get("Content-Length", 0))
         if content_length == 0:
             return None
-        
+
         content = await self._reader.readexactly(content_length)
         return json.loads(content.decode("utf-8"))
-    
+
     async def _handle_message(self, message: dict) -> None:
         """Handle an incoming DAP message."""
         msg_type = message.get("type")
-        
+
         if msg_type == "response":
             # Match response to pending request
             seq = message.get("request_seq")
             future = self._pending.get(seq)
             if future and not future.done():
                 future.set_result(message)
-        
+
         elif msg_type == "event":
             # Dispatch event to callback
             if self._event_callback:
@@ -810,7 +810,7 @@ from opencode_debugger.models.events import EventType
 
 class DebugpyAdapter:
     """Adapter for communicating with debugpy via DAP."""
-    
+
     def __init__(
         self,
         session_id: str,
@@ -820,12 +820,12 @@ class DebugpyAdapter:
         self.session_id = session_id
         self._output_callback = output_callback
         self._event_callback = event_callback
-        
+
         self._process: Optional[asyncio.subprocess.Process] = None
         self._client: Optional[DAPClient] = None
         self._initialized = False
         self._capabilities: dict = {}
-    
+
     async def initialize(self) -> dict:
         """Start debugpy and initialize DAP connection."""
         # Start debugpy adapter process
@@ -836,10 +836,10 @@ class DebugpyAdapter:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        
+
         if not self._process.stdin or not self._process.stdout:
             raise DAPConnectionError("Failed to create debugpy process pipes")
-        
+
         # Create DAP client
         self._client = DAPClient(
             reader=self._process.stdout,
@@ -848,7 +848,7 @@ class DebugpyAdapter:
             timeout=settings.dap_timeout_seconds,
         )
         await self._client.start()
-        
+
         # Send initialize request
         self._capabilities = await self._client.send_request(
             "initialize",
@@ -864,14 +864,14 @@ class DebugpyAdapter:
                 "supportsRunInTerminalRequest": False,
             }
         )
-        
+
         self._initialized = True
         return self._capabilities
-    
+
     async def launch(self, config: LaunchConfig) -> None:
         """Launch the debug target."""
         self._require_initialized()
-        
+
         args = {
             "program": str(config.program),
             "args": config.args,
@@ -882,10 +882,10 @@ class DebugpyAdapter:
             "console": "internalConsole",
             "redirectOutput": True,
         }
-        
+
         if config.python_path:
             args["python"] = str(config.python_path)
-        
+
         try:
             await self._client.send_request(
                 "launch",
@@ -894,16 +894,16 @@ class DebugpyAdapter:
             )
         except Exception as e:
             raise LaunchError(str(e))
-    
+
     async def attach(self, config: AttachConfig) -> None:
         """Attach to a running process."""
         self._require_initialized()
-        
+
         args = {
             "justMyCode": False,
             "redirectOutput": True,
         }
-        
+
         if config.process_id:
             args["processId"] = config.process_id
         else:
@@ -911,9 +911,9 @@ class DebugpyAdapter:
                 "host": config.host,
                 "port": config.port,
             }
-        
+
         await self._client.send_request("attach", args)
-    
+
     async def disconnect(self) -> None:
         """Disconnect and cleanup."""
         if self._client:
@@ -925,10 +925,10 @@ class DebugpyAdapter:
                 )
             except Exception:
                 pass
-            
+
             await self._client.stop()
             self._client = None
-        
+
         if self._process:
             self._process.terminate()
             try:
@@ -936,17 +936,17 @@ class DebugpyAdapter:
             except asyncio.TimeoutError:
                 self._process.kill()
             self._process = None
-        
+
         self._initialized = False
-    
+
     async def set_breakpoints(
-        self, 
-        source_path: str, 
+        self,
+        source_path: str,
         breakpoints: list[SourceBreakpoint],
     ) -> list[Breakpoint]:
         """Set breakpoints for a source file."""
         self._require_initialized()
-        
+
         response = await self._client.send_request(
             "setBreakpoints",
             {
@@ -954,58 +954,58 @@ class DebugpyAdapter:
                 "breakpoints": [bp.model_dump() for bp in breakpoints],
             }
         )
-        
+
         return [Breakpoint(**bp) for bp in response.get("breakpoints", [])]
-    
+
     async def set_exception_breakpoints(self, filters: list[str]) -> None:
         """Set exception breakpoints."""
         self._require_initialized()
-        
+
         await self._client.send_request(
             "setExceptionBreakpoints",
             {"filters": filters}
         )
-    
+
     async def continue_(self, thread_id: int) -> None:
         """Continue execution."""
         self._require_initialized()
         await self._client.send_request("continue", {"threadId": thread_id})
-    
+
     async def pause(self, thread_id: int) -> None:
         """Pause execution."""
         self._require_initialized()
         await self._client.send_request("pause", {"threadId": thread_id})
-    
+
     async def step_over(self, thread_id: int) -> None:
         """Step over (next line)."""
         self._require_initialized()
         await self._client.send_request("next", {"threadId": thread_id})
-    
+
     async def step_into(self, thread_id: int) -> None:
         """Step into function."""
         self._require_initialized()
         await self._client.send_request("stepIn", {"threadId": thread_id})
-    
+
     async def step_out(self, thread_id: int) -> None:
         """Step out of function."""
         self._require_initialized()
         await self._client.send_request("stepOut", {"threadId": thread_id})
-    
+
     async def threads(self) -> list[Thread]:
         """Get all threads."""
         self._require_initialized()
         response = await self._client.send_request("threads")
         return [Thread(**t) for t in response.get("threads", [])]
-    
+
     async def stack_trace(
-        self, 
-        thread_id: int, 
-        start_frame: int = 0, 
+        self,
+        thread_id: int,
+        start_frame: int = 0,
         levels: int = 20,
     ) -> list[StackFrame]:
         """Get stack trace for a thread."""
         self._require_initialized()
-        
+
         response = await self._client.send_request(
             "stackTrace",
             {
@@ -1014,29 +1014,29 @@ class DebugpyAdapter:
                 "levels": levels,
             }
         )
-        
+
         return [StackFrame(**f) for f in response.get("stackFrames", [])]
-    
+
     async def scopes(self, frame_id: int) -> list[Scope]:
         """Get scopes for a stack frame."""
         self._require_initialized()
-        
+
         response = await self._client.send_request(
             "scopes",
             {"frameId": frame_id}
         )
-        
+
         return [Scope(**s) for s in response.get("scopes", [])]
-    
+
     async def variables(
-        self, 
+        self,
         variables_ref: int,
         start: int = 0,
         count: int = 100,
     ) -> list[Variable]:
         """Get variables for a scope or variable reference."""
         self._require_initialized()
-        
+
         response = await self._client.send_request(
             "variables",
             {
@@ -1045,27 +1045,27 @@ class DebugpyAdapter:
                 "count": count,
             }
         )
-        
+
         return [Variable(**v) for v in response.get("variables", [])]
-    
+
     async def evaluate(
-        self, 
-        expression: str, 
+        self,
+        expression: str,
         frame_id: Optional[int] = None,
         context: str = "watch",
     ) -> dict:
         """Evaluate an expression."""
         self._require_initialized()
-        
+
         args = {
             "expression": expression,
             "context": context,
         }
         if frame_id is not None:
             args["frameId"] = frame_id
-        
+
         return await self._client.send_request("evaluate", args)
-    
+
     async def _handle_event(self, event_type: str, body: dict) -> None:
         """Handle DAP events from debugpy."""
         # Map DAP events to our event types
@@ -1077,15 +1077,15 @@ class DebugpyAdapter:
             "breakpoint": EventType.BREAKPOINT,
             "thread": EventType.THREAD,
         }
-        
+
         if event_type == "output" and self._output_callback:
             category = body.get("category", "stdout")
             output = body.get("output", "")
             await self._output_callback(category, output)
-        
+
         if self._event_callback and event_type in event_mapping:
             await self._event_callback(event_mapping[event_type], body)
-    
+
     def _require_initialized(self) -> None:
         """Raise if not initialized."""
         if not self._initialized:
@@ -1121,27 +1121,27 @@ def project_id_from_path(project_root: Path) -> str:
 async def atomic_write(path: Path, data: dict[str, Any]) -> None:
     """Write JSON data atomically using temp file + rename."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     temp_path = path.with_suffix(".tmp")
-    
+
     try:
         content = json.dumps(data, indent=2, default=str)
-        
+
         async with aiofiles.open(temp_path, "w") as f:
             await f.write(content)
             await f.flush()
             os.fsync(f.fileno())
-        
+
         # Atomic rename
         await aiofiles.os.rename(temp_path, path)
-    
+
     except Exception as e:
         # Cleanup temp file on error
         try:
             await aiofiles.os.remove(temp_path)
         except FileNotFoundError:
             pass
-        
+
         raise PersistenceError(
             code="WRITE_FAILED",
             message=f"Failed to write {path}: {e}",
@@ -1178,7 +1178,7 @@ async def list_json_files(directory: Path) -> list[Path]:
     """List all .json files in a directory."""
     if not directory.exists():
         return []
-    
+
     return [
         directory / name
         for name in os.listdir(directory)
@@ -1208,51 +1208,51 @@ from opencode_debugger.persistence.storage import (
 
 class BreakpointStore:
     """Manages per-project breakpoint persistence."""
-    
+
     def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or settings.breakpoints_dir
-    
+
     def _get_path(self, project_root: Path) -> Path:
         """Get storage path for a project's breakpoints."""
         project_id = project_id_from_path(project_root)
         return self.base_dir / f"{project_id}.json"
-    
+
     async def load(
-        self, 
+        self,
         project_root: Path,
     ) -> dict[str, list[SourceBreakpoint]]:
         """Load all breakpoints for a project.
-        
+
         Returns:
             Dict mapping file paths to breakpoint lists.
         """
         path = self._get_path(project_root)
         data = await safe_read(path)
-        
+
         if not data:
             return {}
-        
+
         result = {}
         for file_path, breakpoints in data.get("breakpoints", {}).items():
             result[file_path] = [
                 SourceBreakpoint(**bp) for bp in breakpoints
             ]
-        
+
         return result
-    
+
     async def save(
         self,
         project_root: Path,
         breakpoints: dict[str, list[SourceBreakpoint]],
     ) -> None:
         """Save all breakpoints for a project.
-        
+
         Args:
             project_root: Path to project root
             breakpoints: Dict mapping file paths to breakpoint lists
         """
         path = self._get_path(project_root)
-        
+
         data = {
             "project_root": str(project_root),
             "breakpoints": {
@@ -1260,9 +1260,9 @@ class BreakpointStore:
                 for file_path, bps in breakpoints.items()
             }
         }
-        
+
         await atomic_write(path, data)
-    
+
     async def update_file(
         self,
         project_root: Path,
@@ -1271,14 +1271,14 @@ class BreakpointStore:
     ) -> None:
         """Update breakpoints for a single file."""
         all_breakpoints = await self.load(project_root)
-        
+
         if breakpoints:
             all_breakpoints[file_path] = breakpoints
         else:
             all_breakpoints.pop(file_path, None)
-        
+
         await self.save(project_root, all_breakpoints)
-    
+
     async def clear(self, project_root: Path) -> None:
         """Clear all breakpoints for a project."""
         path = self._get_path(project_root)
@@ -1301,7 +1301,7 @@ from typing import Optional
 @dataclass
 class OutputLine:
     """Single line of output."""
-    
+
     line_number: int
     category: str  # "stdout", "stderr", "console"
     content: str
@@ -1311,7 +1311,7 @@ class OutputLine:
 @dataclass
 class OutputPage:
     """Paginated output response."""
-    
+
     lines: list[OutputLine]
     offset: int
     limit: int
@@ -1322,35 +1322,35 @@ class OutputPage:
 
 class OutputBuffer:
     """Ring buffer for capturing debug output with size limits."""
-    
+
     def __init__(self, max_size: int = 50 * 1024 * 1024):
         self.max_size = max_size
         self._entries: deque[OutputLine] = deque()
         self._current_size: int = 0
         self._total_dropped: int = 0
         self._line_counter: int = 0
-    
+
     def append(self, category: str, content: str) -> None:
         """Add output to the buffer."""
         entry_size = len(content.encode("utf-8"))
-        
+
         # Drop oldest entries if needed to make room
-        while (self._current_size + entry_size > self.max_size 
+        while (self._current_size + entry_size > self.max_size
                and self._entries):
             dropped = self._entries.popleft()
             self._current_size -= len(dropped.content.encode("utf-8"))
             self._total_dropped += 1
-        
+
         self._line_counter += 1
         entry = OutputLine(
             line_number=self._line_counter,
             category=category,
             content=content,
         )
-        
+
         self._entries.append(entry)
         self._current_size += entry_size
-    
+
     def get_page(
         self,
         offset: int = 0,
@@ -1363,10 +1363,10 @@ class OutputBuffer:
             entries = [e for e in self._entries if e.category == category]
         else:
             entries = list(self._entries)
-        
+
         total = len(entries)
         page_entries = entries[offset:offset + limit]
-        
+
         return OutputPage(
             lines=page_entries,
             offset=offset,
@@ -1375,24 +1375,24 @@ class OutputBuffer:
             has_more=(offset + limit) < total,
             truncated=self._total_dropped > 0,
         )
-    
+
     def clear(self) -> None:
         """Clear all output."""
         self._entries.clear()
         self._current_size = 0
         self._total_dropped = 0
         self._line_counter = 0
-    
+
     @property
     def size(self) -> int:
         """Current buffer size in bytes."""
         return self._current_size
-    
+
     @property
     def total_lines(self) -> int:
         """Total lines in buffer."""
         return len(self._entries)
-    
+
     @property
     def dropped_lines(self) -> int:
         """Number of lines dropped due to size limit."""
@@ -1562,7 +1562,7 @@ from pydantic import BaseModel, Field
 
 class EventType(str, Enum):
     """Types of debug events."""
-    
+
     STOPPED = "stopped"
     CONTINUED = "continued"
     TERMINATED = "terminated"
@@ -1574,7 +1574,7 @@ class EventType(str, Enum):
 
 class DebugEvent(BaseModel):
     """Debug event from debugpy."""
-    
+
     type: EventType
     timestamp: datetime
     data: dict[str, Any] = Field(default_factory=dict)

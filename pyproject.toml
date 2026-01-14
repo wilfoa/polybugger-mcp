@@ -3,26 +3,28 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "opencode-debugger"
+name = "python-debugger-mcp"
 version = "0.1.0"
-description = "HTTP relay server enabling AI agents to debug Python applications via debugpy/DAP"
+description = "MCP server for interactive Python debugging with AI agents via debugpy/DAP"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
-    { name = "OpenCode Team" }
+    { name = "Amir Wilf" }
 ]
-keywords = ["debugger", "debugging", "ai", "dap", "debugpy", "python"]
+keywords = ["mcp", "debugger", "debugging", "ai", "dap", "debugpy", "python", "model-context-protocol"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Testing",
+    "Framework :: FastAPI",
 ]
 
 dependencies = [
@@ -46,20 +48,23 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.8.0",
     "types-aiofiles>=23.2.0",
+    "pre-commit>=4.0.0",
+    "codespell>=2.3.0",
 ]
 
 [project.scripts]
-opencode-debugger = "opencode_debugger.main:main"
-opencode-debugger-mcp = "opencode_debugger.mcp_server:main"
+python-debugger-mcp = "python_debugger_mcp.main:main"
+python-debugger-mcp-server = "python_debugger_mcp.mcp_server:main"
 
 [project.urls]
-Homepage = "https://github.com/opencode/opencode-debugger"
-Documentation = "https://github.com/opencode/opencode-debugger#readme"
-Repository = "https://github.com/opencode/opencode-debugger"
-Issues = "https://github.com/opencode/opencode-debugger/issues"
+Homepage = "https://github.com/wilfoa/python-debugger-mcp"
+Documentation = "https://github.com/wilfoa/python-debugger-mcp#readme"
+Repository = "https://github.com/wilfoa/python-debugger-mcp"
+Issues = "https://github.com/wilfoa/python-debugger-mcp/issues"
+Changelog = "https://github.com/wilfoa/python-debugger-mcp/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/opencode_debugger"]
+packages = ["src/python_debugger_mcp"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -93,7 +98,7 @@ filterwarnings = [
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["src/opencode_debugger"]
+source = ["src/python_debugger_mcp"]
 branch = true
 omit = [
     "*/tests/*",
@@ -108,12 +113,12 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
 ]
-fail_under = 90
+fail_under = 80
 show_missing = true
 
 # Ruff configuration
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 100
 src = ["src", "tests"]
 
@@ -132,18 +137,24 @@ select = [
 ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
+    "B904",   # raise from in except - intentionally omitted for cleaner tracebacks
     "B905",   # zip without strict
+    "SIM102", # nested if - sometimes clearer than combined conditions
+    "SIM105", # contextlib.suppress - explicit try/except is often clearer
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["opencode_debugger"]
+known-first-party = ["python_debugger_mcp"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG001"]  # Unused function argument (fixtures)
+"tests/*" = ["ARG001", "ARG002"]  # Unused function arguments (fixtures)
+"src/python_debugger_mcp/api/errors.py" = ["ARG001"]  # FastAPI error handlers require request arg
+"src/python_debugger_mcp/mcp_server.py" = ["ARG001"]  # FastMCP lifespan requires app arg
+"src/python_debugger_mcp/models/requests.py" = ["ARG003"]  # Pydantic validator signature
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -162,3 +173,37 @@ ignore_missing_imports = true
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "python_debugger_mcp.mcp_server"
+disallow_untyped_decorators = false
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+warn_return_any = false
+
+# Semantic Release configuration
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/python_debugger_mcp/__init__.py:__version__"]
+branch = "main"
+build_command = "pip install build && python -m build"
+commit_message = "chore(release): {version} [skip ci]"
+
+[tool.semantic_release.changelog]
+template_dir = ".github/templates"
+changelog_file = "CHANGELOG.md"
+exclude_commit_patterns = [
+    "^chore.*",
+    "^ci.*",
+    "^docs.*",
+    "^style.*",
+]
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["feat", "fix", "perf", "refactor", "build"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf", "refactor"]

@@ -1,8 +1,6 @@
 """Tests for output buffer."""
 
-import pytest
-
-from opencode_debugger.utils.output_buffer import OutputBuffer, OutputLine, OutputPage
+from python_debugger_mcp.utils.output_buffer import OutputBuffer
 
 
 class TestOutputBuffer:

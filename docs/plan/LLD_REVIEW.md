@@ -1,8 +1,8 @@
 # LLD Architecture Review
 
-**Project:** OpenCode Debug Relay Server  
-**Review Date:** January 13, 2026  
-**Reviewer:** Architecture Review Agent  
+**Project:** OpenCode Debug Relay Server
+**Review Date:** January 13, 2026
+**Reviewer:** Architecture Review Agent
 **Documents Reviewed:**
 - LLD_BACKEND.md (Backend Implementation)
 - LLD_API.md (API Specification)
@@ -285,7 +285,7 @@ None identified. Both documents are fundamentally sound.
 - **Location:** Backend `uuid.uuid4()` vs API `sess_{uuid8}`
 - **Impact:** Session IDs won't match documented format
 - **Recommendation:** Update backend to generate prefixed IDs
-- **Suggested Fix:** 
+- **Suggested Fix:**
   ```python
   session_id = f"sess_{uuid.uuid4().hex[:8]}"
   ```
@@ -296,7 +296,7 @@ None identified. Both documents are fundamentally sound.
 - **Recommendation:** Standardize error codes
 - **Suggested Fixes:**
   - `DAP_TIMEOUT` -> `DEBUGPY_TIMEOUT` (use API version)
-  - `DAP_CONNECTION_ERROR` -> `DEBUGPY_ERROR` (use API version)  
+  - `DAP_CONNECTION_ERROR` -> `DEBUGPY_ERROR` (use API version)
   - `LAUNCH_ERROR` -> `LAUNCH_FAILED` (use API version)
   - Add missing backend exceptions: `SessionExpiredError`, `BreakpointNotFoundError`, `ThreadNotFoundError`, `FrameNotFoundError`, `VariableNotFoundError`
 
@@ -406,7 +406,7 @@ After revisions are complete:
 
 ---
 
-**Review Completed:** January 13, 2026  
+**Review Completed:** January 13, 2026
 **Reviewer Signature:** Architecture Review Agent
 
 ---

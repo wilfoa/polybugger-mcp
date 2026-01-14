@@ -6,16 +6,14 @@ standalone example scripts that don't use debugpy themselves.
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from opencode_debugger.core.session import SessionManager
-from opencode_debugger.main import create_app
-from opencode_debugger.persistence.breakpoints import BreakpointStore
-
+from python_debugger_mcp.core.session import SessionManager
+from python_debugger_mcp.main import create_app
+from python_debugger_mcp.persistence.breakpoints import BreakpointStore
 
 # Path to examples directory
 EXAMPLES_DIR = Path(__file__).parent.parent.parent / "examples"
@@ -130,7 +128,7 @@ class TestFibonacciDebugging:
         assert response.status_code == 200
         variables = response.json()["variables"]
         var_names = [v["name"] for v in variables]
-        
+
         # Should have 'n', 'a', 'b' in scope
         assert "n" in var_names
         assert "a" in var_names
@@ -155,9 +153,7 @@ class TestFibonacciDebugging:
         assert terminated
 
     @pytest.mark.asyncio
-    async def test_step_through_fibonacci(
-        self, debug_client: AsyncClient, tmp_path: Path
-    ) -> None:
+    async def test_step_through_fibonacci(self, debug_client: AsyncClient, tmp_path: Path) -> None:
         """Test stepping through the fibonacci function."""
         fibonacci_script = EXAMPLES_DIR / "fibonacci.py"
 
@@ -211,9 +207,7 @@ class TestDataProcessorDebugging:
     """Test debugging the data processor example script."""
 
     @pytest.mark.asyncio
-    async def test_debug_filter_records(
-        self, debug_client: AsyncClient, tmp_path: Path
-    ) -> None:
+    async def test_debug_filter_records(self, debug_client: AsyncClient, tmp_path: Path) -> None:
         """Test debugging the filter_records function."""
         processor_script = EXAMPLES_DIR / "data_processor.py"
         assert processor_script.exists(), f"Example script not found: {processor_script}"
@@ -286,7 +280,9 @@ class TestDataProcessorDebugging:
             f"/api/v1/sessions/{session_id}/breakpoints",
             json={
                 "source": str(processor_script),
-                "breakpoints": [{"line": 55, "condition": "old_value > 25"}],  # new_value = transformer(old_value)
+                "breakpoints": [
+                    {"line": 55, "condition": "old_value > 25"}
+                ],  # new_value = transformer(old_value)
             },
         )
         assert response.status_code == 200

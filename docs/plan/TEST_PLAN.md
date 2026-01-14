@@ -1,9 +1,9 @@
 # Test Plan: OpenCode Debug Relay Server
 
-**Project:** OpenCode Debug Relay Server  
-**Document Version:** 1.0  
-**Created:** January 13, 2026  
-**Status:** Design Complete  
+**Project:** OpenCode Debug Relay Server
+**Document Version:** 1.0
+**Created:** January 13, 2026
+**Status:** Design Complete
 **Author:** QA Expert Agent
 
 ---
@@ -532,7 +532,7 @@ coverage_threshold: 90
 async def test_basic_debug_session_flow():
     """
     Test complete basic debug workflow from User Story 3.1:
-    Start Session → Set Breakpoints → Launch Script → Hit Breakpoint → 
+    Start Session → Set Breakpoints → Launch Script → Hit Breakpoint →
     Inspect State → Step Through → Continue → Session Ends
     """
     # Steps from User Story Table 3.1
@@ -795,7 +795,7 @@ async def test_session_creation_latency(benchmark):
     async def create_session():
         response = await client.post("/sessions", json={})
         return response
-    
+
     result = await benchmark.pedantic(create_session, rounds=10)
     assert result.stats.mean < 0.5  # 500ms
 ```
@@ -922,7 +922,7 @@ async def test_session_creation_latency(benchmark):
 async def test_error_response_format(error_scenario):
     """All errors follow standard format with code, message, details."""
     response = await trigger_error(error_scenario)
-    
+
     assert response.json()["success"] == False
     assert response.json()["data"] is None
     assert "code" in response.json()["error"]
@@ -1061,7 +1061,7 @@ from dataclasses import dataclass
 @dataclass
 class DataModel:
     value: int
-    
+
     def double(self):
         return self.value * 2
 ```
@@ -1075,7 +1075,7 @@ class Node:
         self.name = name
         self.parent = None
         self.children = []
-    
+
     def add_child(self, child):
         self.children.append(child)
         child.parent = self
@@ -1465,7 +1465,7 @@ filterwarnings = [
 source = src/opencode_debugger
 branch = True
 parallel = True
-omit = 
+omit =
     */tests/*
     */__pycache__/*
     */migrations/*
@@ -1511,20 +1511,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install ruff mypy
           pip install -e ".[dev]"
-      
+
       - name: Run ruff
         run: ruff check src tests
-      
+
       - name: Run mypy
         run: mypy src
 
@@ -1534,23 +1534,23 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
-      
+
       - name: Run unit tests
         run: |
           pytest tests/unit -v --cov --cov-report=xml -m "not slow"
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -1562,23 +1562,23 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: unit-tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
-      
+
       - name: Run integration tests
         run: |
           pytest tests/integration -v --cov --cov-report=xml
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -1589,19 +1589,19 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: integration-tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
-      
+
       - name: Run E2E tests
         run: |
           pytest tests/e2e -v --timeout=300
@@ -1611,24 +1611,24 @@ jobs:
     name: Performance Tests
     runs-on: ubuntu-latest
     needs: integration-tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
           pip install pytest-benchmark
-      
+
       - name: Run performance tests
         run: |
           pytest tests/performance -v --benchmark-json=benchmark.json
-      
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v3
         with:
@@ -1639,19 +1639,19 @@ jobs:
     name: Edge Case Tests
     runs-on: ubuntu-latest
     needs: unit-tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
-      
+
       - name: Run edge case tests
         run: |
           pytest tests/edge_cases -v
@@ -1660,19 +1660,19 @@ jobs:
     name: Error Handling Tests
     runs-on: ubuntu-latest
     needs: unit-tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
-      
+
       - name: Run error handling tests
         run: |
           pytest tests/errors -v
@@ -1681,27 +1681,27 @@ jobs:
     name: Coverage Report
     runs-on: ubuntu-latest
     needs: [unit-tests, integration-tests]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install -e ".[dev,test]"
-      
+
       - name: Run all tests with coverage
         run: |
           pytest tests --cov --cov-report=xml --cov-report=html
-      
+
       - name: Check coverage threshold
         run: |
           coverage report --fail-under=90
-      
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v3
         with:

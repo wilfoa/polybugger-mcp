@@ -1,26 +1,26 @@
 ---
 name: python-debug
-description: Debug Python code interactively using the OpenCode Debug Relay Server - set breakpoints, inspect variables, step through code, and evaluate expressions via HTTP API
+description: Debug Python code interactively using the Python Debugger MCP - set breakpoints, inspect variables, step through code, and evaluate expressions via HTTP API
 license: MIT
 compatibility: opencode
 metadata:
   language: python
   category: debugging
-  requires: opencode-debugger server running
+  requires: python-debugger-mcp server running
 ---
 
 # Python Debug Skill
 
-This skill enables interactive Python debugging through the OpenCode Debug Relay Server. Use this when you need to debug Python code by setting breakpoints, stepping through execution, inspecting variables, and evaluating expressions.
+This skill enables interactive Python debugging through the Python Debugger MCP. Use this when you need to debug Python code by setting breakpoints, stepping through execution, inspecting variables, and evaluating expressions.
 
 ## Prerequisites
 
-The OpenCode Debug Relay Server must be running. Start it with:
+The Python Debugger MCP must be running. Start it with:
 
 ```bash
-cd /path/to/opencode_debugger
+cd /path/to/python_debugger_mcp
 source .venv/bin/activate
-python -m opencode_debugger.main
+python -m python_debugger_mcp.main
 ```
 
 The server runs on `http://127.0.0.1:5679` by default.

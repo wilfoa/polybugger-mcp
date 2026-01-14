@@ -1,12 +1,12 @@
 """Tests for session recovery functionality."""
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
-from opencode_debugger.core.session import Session
-from opencode_debugger.models.dap import SourceBreakpoint
-from opencode_debugger.persistence.sessions import PersistedSession, SessionStore
+import pytest
+
+from python_debugger_mcp.core.session import Session
+from python_debugger_mcp.models.dap import SourceBreakpoint
+from python_debugger_mcp.persistence.sessions import SessionStore
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def sample_session(tmp_path):
         project_root=tmp_path / "project",
         name="Test Session",
     )
-    
+
     # Add some breakpoints
     session._breakpoints = {
         "/path/to/file.py": [
@@ -34,11 +34,11 @@ def sample_session(tmp_path):
             SourceBreakpoint(line=5),
         ],
     }
-    
+
     # Add watch expressions
     session.add_watch("x + y")
     session.add_watch("len(items)")
-    
+
     return session
 
 
@@ -48,7 +48,7 @@ class TestPersistedSession:
     def test_session_to_persisted(self, sample_session: Session):
         """Test converting session to persisted format."""
         persisted = sample_session.to_persisted()
-        
+
         assert persisted.id == "sess_abc123"
         assert persisted.name == "Test Session"
         assert persisted.state == "created"
@@ -59,7 +59,7 @@ class TestPersistedSession:
         """Test server_shutdown flag in persisted session."""
         persisted_normal = sample_session.to_persisted(server_shutdown=False)
         persisted_shutdown = sample_session.to_persisted(server_shutdown=True)
-        
+
         assert not persisted_normal.server_shutdown
         assert persisted_shutdown.server_shutdown
 
@@ -67,15 +67,15 @@ class TestPersistedSession:
         """Test recovering session from persisted data."""
         persisted = sample_session.to_persisted()
         recovered = Session.from_persisted(persisted)
-        
+
         assert recovered.id == sample_session.id
         assert recovered.name == sample_session.name
         assert str(recovered.project_root) == str(sample_session.project_root)
-        
+
         # Check breakpoints restored
         assert len(recovered._breakpoints) == 2
         assert len(recovered._breakpoints["/path/to/file.py"]) == 2
-        
+
         # Check watch expressions restored
         assert recovered.list_watches() == ["x + y", "len(items)"]
 
@@ -87,10 +87,10 @@ class TestSessionStore:
     async def test_save_and_load(self, session_store: SessionStore, sample_session: Session):
         """Test saving and loading a session."""
         persisted = sample_session.to_persisted()
-        
+
         await session_store.save(persisted)
         loaded = await session_store.load(persisted.id)
-        
+
         assert loaded is not None
         assert loaded.id == persisted.id
         assert loaded.name == persisted.name
@@ -107,10 +107,10 @@ class TestSessionStore:
         """Test deleting a persisted session."""
         persisted = sample_session.to_persisted()
         await session_store.save(persisted)
-        
+
         result = await session_store.delete(persisted.id)
         assert result is True
-        
+
         loaded = await session_store.load(persisted.id)
         assert loaded is None
 
@@ -133,7 +133,7 @@ class TestSessionStore:
             )
             sessions.append(session.to_persisted())
             await session_store.save(sessions[-1])
-        
+
         all_sessions = await session_store.list_all()
         assert len(all_sessions) == 3
         ids = {s.id for s in all_sessions}
@@ -152,7 +152,7 @@ class TestSessionStore:
         # Manually set saved_at to 48 hours ago
         old_persisted.saved_at = datetime.now(timezone.utc) - timedelta(hours=48)
         await session_store.save(old_persisted)
-        
+
         # Create a new session
         new_session = Session(
             session_id="new_sess",
@@ -160,11 +160,11 @@ class TestSessionStore:
             name="New Session",
         )
         await session_store.save(new_session.to_persisted())
-        
+
         # Cleanup with 24 hour max age
         cleaned = await session_store.cleanup_old(max_age_hours=24)
         assert cleaned == 1
-        
+
         # Old session should be gone
         assert await session_store.load("old_sess") is None
         # New session should still exist

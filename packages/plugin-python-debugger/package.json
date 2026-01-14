@@ -1,7 +1,7 @@
 {
-  "name": "opencode-python-debugger",
+  "name": "python-debugger-mcp-plugin",
   "version": "1.0.0",
-  "description": "OpenCode plugin for interactive Python debugging via the Debug Relay Server",
+  "description": "OpenCode plugin for interactive Python debugging via Python Debugger MCP",
   "main": "index.ts",
   "types": "index.ts",
   "keywords": [
@@ -11,13 +11,14 @@
     "debugger",
     "debugging",
     "dap",
-    "debugpy"
+    "debugpy",
+    "mcp"
   ],
-  "author": "",
+  "author": "Amir Wilf",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/opencode-debugger"
+    "url": "https://github.com/wilfoa/python-debugger-mcp"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": ">=0.1.0"

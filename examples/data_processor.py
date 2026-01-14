@@ -1,12 +1,13 @@
 """Example script for debugging - processes data with various transformations."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass
 class Record:
     """A simple data record."""
+
     id: int
     name: str
     value: float
@@ -29,10 +30,7 @@ def load_sample_data() -> list[Record]:
     ]
 
 
-def filter_records(
-    records: list[Record], 
-    predicate: Callable[[Record], bool]
-) -> list[Record]:
+def filter_records(records: list[Record], predicate: Callable[[Record], bool]) -> list[Record]:
     """Filter records based on a predicate function."""
     result = []
     for record in records:
@@ -44,10 +42,7 @@ def filter_records(
     return result
 
 
-def transform_values(
-    records: list[Record], 
-    transformer: Callable[[float], float]
-) -> list[Record]:
+def transform_values(records: list[Record], transformer: Callable[[float], float]) -> list[Record]:
     """Transform the value field of each record."""
     result = []
     for record in records:
@@ -78,7 +73,7 @@ def calculate_statistics(records: list[Record]) -> dict[str, float]:
     """Calculate statistics for a list of records."""
     if not records:
         return {"count": 0, "sum": 0, "avg": 0, "min": 0, "max": 0}
-    
+
     values = [r.value for r in records]
     return {
         "count": len(values),
@@ -93,28 +88,28 @@ def main():
     """Main processing pipeline."""
     print("Data Processor")
     print("=" * 50)
-    
+
     # Load data
     print("\n1. Loading data...")
     records = load_sample_data()
     print(f"   Loaded {len(records)} records")
-    
+
     # Filter: only records with value > 15
     print("\n2. Filtering (value > 15)...")
     filtered = filter_records(records, lambda r: r.value > 15)
     print(f"   Kept {len(filtered)} records")
-    
+
     # Transform: apply 10% increase
     print("\n3. Transforming (10% increase)...")
     transformed = transform_values(filtered, lambda v: v * 1.1)
-    
+
     # Group by category
     print("\n4. Grouping by category...")
     groups = group_by_category(transformed)
     for category, group_records in sorted(groups.items()):
         names = [r.name for r in group_records]
         print(f"   Category {category}: {names}")
-    
+
     # Calculate statistics per category
     print("\n5. Statistics by category:")
     for category, group_records in sorted(groups.items()):
@@ -124,17 +119,17 @@ def main():
         print(f"      Sum:   {stats['sum']:.2f}")
         print(f"      Avg:   {stats['avg']:.2f}")
         print(f"      Range: {stats['min']:.2f} - {stats['max']:.2f}")
-    
+
     # Overall statistics
     print("\n6. Overall statistics:")
     overall = calculate_statistics(transformed)
     print(f"   Total records: {overall['count']}")
     print(f"   Total value:   {overall['sum']:.2f}")
     print(f"   Average value: {overall['avg']:.2f}")
-    
+
     print("\n" + "=" * 50)
     print("Processing complete!")
-    
+
     return transformed
 
 

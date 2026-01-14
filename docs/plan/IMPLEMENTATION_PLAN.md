@@ -1,7 +1,7 @@
 # OpenCode Debug Relay Server - Implementation Plan
 
-**Version:** 1.0  
-**Date:** January 13, 2026  
+**Version:** 1.0
+**Date:** January 13, 2026
 **Status:** Ready for Implementation
 
 ---
@@ -441,7 +441,7 @@ curl http://localhost:5679/api/v1/health
 
 ---
 
-**Document Compiled:** January 13, 2026  
+**Document Compiled:** January 13, 2026
 **Ready for Implementation:** Yes
 
 ---

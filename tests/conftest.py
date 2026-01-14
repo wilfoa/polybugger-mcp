@@ -1,18 +1,18 @@
 """Global test fixtures."""
 
 import asyncio
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from opencode_debugger.config import Settings, settings
-from opencode_debugger.core.session import SessionManager
-from opencode_debugger.main import create_app
-from opencode_debugger.persistence.breakpoints import BreakpointStore
-from opencode_debugger.utils.output_buffer import OutputBuffer
+from python_debugger_mcp.config import Settings
+from python_debugger_mcp.core.session import SessionManager
+from python_debugger_mcp.main import create_app
+from python_debugger_mcp.persistence.breakpoints import BreakpointStore
+from python_debugger_mcp.utils.output_buffer import OutputBuffer
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +26,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 @pytest.fixture
 def tmp_data_dir(tmp_path: Path) -> Path:
     """Create temporary data directory."""
-    data_dir = tmp_path / ".opencode-debugger"
+    data_dir = tmp_path / ".python-debugger-mcp"
     data_dir.mkdir(parents=True)
     (data_dir / "breakpoints").mkdir()
     (data_dir / "sessions").mkdir()
@@ -52,7 +52,9 @@ async def breakpoint_store(tmp_data_dir: Path) -> BreakpointStore:
 
 
 @pytest_asyncio.fixture
-async def session_manager(breakpoint_store: BreakpointStore) -> AsyncGenerator[SessionManager, None]:
+async def session_manager(
+    breakpoint_store: BreakpointStore,
+) -> AsyncGenerator[SessionManager, None]:
     """Create session manager for testing."""
     manager = SessionManager(breakpoint_store=breakpoint_store)
     await manager.start()

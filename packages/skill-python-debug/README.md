@@ -1,10 +1,10 @@
-# OpenCode Python Debug Skill
+# Python Debugger MCP Python Debug Skill
 
-An OpenCode agent skill that provides instructions for debugging Python code via the OpenCode Debug Relay Server.
+An Python Debugger MCP agent skill that provides instructions for debugging Python code via the Python Debugger MCP.
 
 ## Installation
 
-Copy the `SKILL.md` file to your OpenCode skills directory:
+Copy the `SKILL.md` file to your Python Debugger MCP skills directory:
 
 ### Project-level (recommended)
 ```bash
@@ -20,21 +20,21 @@ cp SKILL.md ~/.config/opencode/skill/python-debug/
 
 ## Prerequisites
 
-The OpenCode Debug Relay Server must be running for this skill to work:
+The Python Debugger MCP must be running for this skill to work:
 
 ```bash
 # Install the debug server
-pip install opencode-debugger
+pip install python-debugger-mcp
 
 # Start the server
-python -m opencode_debugger.main
+python -m python_debugger_mcp.main
 ```
 
 The server runs on `http://127.0.0.1:5679` by default.
 
 ## Usage
 
-Once installed, the skill will be available to OpenCode agents. They can load it when debugging Python code is needed.
+Once installed, the skill will be available to Python Debugger MCP agents. They can load it when debugging Python code is needed.
 
 The skill provides:
 - API endpoint documentation for the debug server

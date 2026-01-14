@@ -4,4 +4,4 @@ An MCP server that enables AI agents to debug Python code
 interactively via debugpy/DAP (Debug Adapter Protocol).
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"

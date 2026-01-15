@@ -296,6 +296,402 @@ class TUIFormatter:
 
         return "\n".join(lines)
 
+    def format_inspection(
+        self,
+        inspection: dict[str, Any],
+        title: str | None = None,
+    ) -> str:
+        """Format variable inspection result as rich terminal output.
+
+        Args:
+            inspection: Inspection result dict with keys:
+                - name: str
+                - type: str
+                - detected_type: str
+                - structure: dict
+                - preview: dict
+                - statistics: dict | None
+                - summary: str
+                - warnings: list[str]
+            title: Optional custom title (defaults to "VARIABLE: {name}")
+
+        Returns:
+            Box-drawn string representation of the inspection.
+
+        Example Output:
+            ┌──────────────────────────────────────────────────────────────────┐
+            │ VARIABLE: df                                                     │
+            ├──────────────────────────────────────────────────────────────────┤
+            │ DataFrame with 1000 rows x 5 columns, 78.1 KB                    │
+            ├──────────────────────────────────────────────────────────────────┤
+            │ COLUMNS                                                          │
+            │ ┌────────────┬────────────────┬────────┐                         │
+            │ │ Name       │ Type           │ Nulls  │                         │
+            │ ├────────────┼────────────────┼────────┤                         │
+            │ │ id         │ int64          │ 0      │                         │
+            │ │ name       │ object         │ 5      │                         │
+            │ └────────────┴────────────────┴────────┘                         │
+            └──────────────────────────────────────────────────────────────────┘
+        """
+        name = inspection.get("name", "unknown")
+        detected_type = inspection.get("detected_type", "unknown")
+        display_title = title or f"VARIABLE: {name}"
+
+        inner_width = self.config.max_width - 2
+        lines: list[str] = []
+
+        # Header
+        lines.append(self._box_top(inner_width))
+        lines.append(self._box_row(f" {display_title}", inner_width))
+        lines.append(self._box_separator(inner_width))
+
+        # Summary line
+        summary = inspection.get("summary", "")
+        lines.append(self._box_row(f" {summary}", inner_width))
+
+        # Type-specific formatting
+        if detected_type == "dataframe":
+            lines.extend(self._format_dataframe_inspection(inspection, inner_width))
+        elif detected_type == "series":
+            lines.extend(self._format_series_inspection(inspection, inner_width))
+        elif detected_type == "ndarray":
+            lines.extend(self._format_ndarray_inspection(inspection, inner_width))
+        elif detected_type == "dict":
+            lines.extend(self._format_dict_inspection(inspection, inner_width))
+        elif detected_type == "list":
+            lines.extend(self._format_list_inspection(inspection, inner_width))
+        else:
+            lines.extend(self._format_unknown_inspection(inspection, inner_width))
+
+        # Warnings
+        warnings = inspection.get("warnings", [])
+        if warnings:
+            lines.append(self._box_separator(inner_width))
+            lines.append(self._box_row(" WARNINGS", inner_width))
+            for warning in warnings:
+                lines.append(self._box_row(f"   ⚠ {warning}", inner_width))
+
+        lines.append(self._box_bottom(inner_width))
+
+        return "\n".join(lines)
+
+    def _format_dataframe_inspection(
+        self,
+        inspection: dict[str, Any],
+        inner_width: int,
+    ) -> list[str]:
+        """Format DataFrame-specific inspection data."""
+        lines: list[str] = []
+        structure = inspection.get("structure", {})
+        preview = inspection.get("preview", {})
+
+        lines.append(self._box_separator(inner_width))
+
+        # Column information
+        columns = structure.get("columns", [])
+        dtypes = structure.get("dtypes", {})
+        null_counts = structure.get("null_counts", {})
+
+        if columns:
+            lines.append(self._box_row(" COLUMNS", inner_width))
+
+            # Build mini-table for columns
+            col_data = []
+            for col_name in columns[:10]:  # Limit to first 10
+                dtype = dtypes.get(col_name, "?")
+                nulls = null_counts.get(col_name, 0)
+                col_data.append(
+                    {
+                        "name": col_name,
+                        "type": dtype,
+                        "nulls": str(nulls) if nulls > 0 else "-",
+                    }
+                )
+
+            if col_data:
+                mini_table = self._format_mini_table(
+                    col_data,
+                    ["name", "type", "nulls"],
+                    ["Name", "Type", "Nulls"],
+                )
+                for row in mini_table.split("\n"):
+                    lines.append(self._box_row(f"   {row}", inner_width))
+
+            if len(columns) > 10:
+                lines.append(
+                    self._box_row(f"   ... and {len(columns) - 10} more columns", inner_width)
+                )
+
+        # Preview data
+        head_data = preview.get("head", [])
+        if head_data and isinstance(head_data, list):
+            lines.append(self._box_separator(inner_width))
+            lines.append(self._box_row(f" PREVIEW (first {len(head_data)} rows)", inner_width))
+
+            # Show first few rows as key-value pairs
+            for i, row in enumerate(head_data[:3]):
+                if isinstance(row, dict):
+                    row_str = ", ".join(
+                        f"{k}={self._truncate(str(v), 15)}" for k, v in list(row.items())[:4]
+                    )
+                    lines.append(
+                        self._box_row(
+                            f"   [{i}] {self._truncate(row_str, inner_width - 8)}", inner_width
+                        )
+                    )
+
+        return lines
+
+    def _format_series_inspection(
+        self,
+        inspection: dict[str, Any],
+        inner_width: int,
+    ) -> list[str]:
+        """Format Series-specific inspection data."""
+        lines: list[str] = []
+        structure = inspection.get("structure", {})
+        preview = inspection.get("preview", {})
+        statistics = inspection.get("statistics")
+
+        lines.append(self._box_separator(inner_width))
+
+        # Series info
+        dtype = structure.get("dtype", "unknown")
+        length = structure.get("length", 0)
+        lines.append(self._box_row(f" Type: {dtype}, Length: {length:,}", inner_width))
+
+        # Statistics
+        if statistics:
+            stats_parts = []
+            if statistics.get("min") is not None:
+                stats_parts.append(f"min={statistics['min']:.3g}")
+            if statistics.get("max") is not None:
+                stats_parts.append(f"max={statistics['max']:.3g}")
+            if statistics.get("mean") is not None:
+                stats_parts.append(f"mean={statistics['mean']:.3g}")
+            if statistics.get("std") is not None:
+                stats_parts.append(f"std={statistics['std']:.3g}")
+            if stats_parts:
+                lines.append(self._box_row(f" Stats: {', '.join(stats_parts)}", inner_width))
+
+        # Preview
+        head_data = preview.get("head", [])
+        if head_data:
+            lines.append(self._box_row(f" Head: {head_data[:5]}", inner_width))
+
+        return lines
+
+    def _format_ndarray_inspection(
+        self,
+        inspection: dict[str, Any],
+        inner_width: int,
+    ) -> list[str]:
+        """Format ndarray-specific inspection data."""
+        lines: list[str] = []
+        structure = inspection.get("structure", {})
+        preview = inspection.get("preview", {})
+        statistics = inspection.get("statistics")
+
+        lines.append(self._box_separator(inner_width))
+
+        # Array info
+        shape = structure.get("shape", ())
+        dtype = structure.get("dtype", "unknown")
+        lines.append(self._box_row(f" Shape: {shape}, Dtype: {dtype}", inner_width))
+
+        # Statistics
+        if statistics:
+            stats_parts = []
+            if statistics.get("min") is not None:
+                stats_parts.append(f"min={statistics['min']:.3g}")
+            if statistics.get("max") is not None:
+                stats_parts.append(f"max={statistics['max']:.3g}")
+            if statistics.get("mean") is not None:
+                stats_parts.append(f"mean={statistics['mean']:.3g}")
+            if statistics.get("std") is not None:
+                stats_parts.append(f"std={statistics['std']:.3g}")
+            if stats_parts:
+                lines.append(self._box_row(f" Stats: {', '.join(stats_parts)}", inner_width))
+
+        # Sample values
+        sample = preview.get("sample", [])
+        if sample:
+            sample_str = str(sample[:8])
+            lines.append(
+                self._box_row(
+                    f" Sample: {self._truncate(sample_str, inner_width - 12)}", inner_width
+                )
+            )
+
+        return lines
+
+    def _format_dict_inspection(
+        self,
+        inspection: dict[str, Any],
+        inner_width: int,
+    ) -> list[str]:
+        """Format dict-specific inspection data."""
+        lines: list[str] = []
+        structure = inspection.get("structure", {})
+        preview = inspection.get("preview", {})
+
+        lines.append(self._box_separator(inner_width))
+
+        # Dict info
+        length = structure.get("length", 0)
+        key_types = structure.get("key_types", [])
+        value_types = structure.get("value_types", [])
+
+        key_type_str = key_types[0] if len(key_types) == 1 else "mixed"
+        value_type_str = ", ".join(value_types[:3]) if value_types else "unknown"
+
+        lines.append(self._box_row(f" Keys: {length:,} ({key_type_str})", inner_width))
+        lines.append(self._box_row(f" Value types: {value_type_str}", inner_width))
+
+        # Key preview
+        keys_preview = preview.get("keys", [])
+        if keys_preview:
+            keys_str = ", ".join(str(k) for k in keys_preview[:5])
+            lines.append(
+                self._box_row(
+                    f" Sample keys: {self._truncate(keys_str, inner_width - 15)}", inner_width
+                )
+            )
+
+        return lines
+
+    def _format_list_inspection(
+        self,
+        inspection: dict[str, Any],
+        inner_width: int,
+    ) -> list[str]:
+        """Format list-specific inspection data."""
+        lines: list[str] = []
+        structure = inspection.get("structure", {})
+        preview = inspection.get("preview", {})
+
+        lines.append(self._box_separator(inner_width))
+
+        # List info
+        length = structure.get("length", 0)
+        element_types = structure.get("element_types", [])
+        uniform = structure.get("uniform", False)
+
+        type_info = element_types[0] if len(element_types) == 1 else "mixed"
+        uniformity = "uniform" if uniform else "mixed types"
+
+        lines.append(self._box_row(f" Length: {length:,} ({type_info}, {uniformity})", inner_width))
+
+        # Preview
+        head_data = preview.get("head", [])
+        if head_data:
+            preview_str = str(head_data[:5])
+            lines.append(
+                self._box_row(
+                    f" Preview: {self._truncate(preview_str, inner_width - 12)}", inner_width
+                )
+            )
+
+        return lines
+
+    def _format_unknown_inspection(
+        self,
+        inspection: dict[str, Any],
+        inner_width: int,
+    ) -> list[str]:
+        """Format unknown type inspection data."""
+        lines: list[str] = []
+        structure = inspection.get("structure", {})
+
+        lines.append(self._box_separator(inner_width))
+
+        # Type info
+        type_module = structure.get("type_module", "")
+        type_name = structure.get("type_name", "unknown")
+        full_type = f"{type_module}.{type_name}" if type_module else type_name
+        lines.append(self._box_row(f" Full type: {full_type}", inner_width))
+
+        # Attributes
+        attributes = structure.get("attributes", [])
+        if attributes:
+            attr_str = ", ".join(attributes[:5])
+            lines.append(
+                self._box_row(
+                    f" Attributes: {self._truncate(attr_str, inner_width - 14)}", inner_width
+                )
+            )
+            if len(attributes) > 5:
+                lines.append(self._box_row(f"   ... and {len(attributes) - 5} more", inner_width))
+
+        # Repr
+        repr_str = structure.get("repr", "")
+        if repr_str:
+            lines.append(
+                self._box_row(f" Repr: {self._truncate(repr_str, inner_width - 9)}", inner_width)
+            )
+
+        # Hint
+        hint = inspection.get("hint")
+        if hint:
+            lines.append(self._box_separator(inner_width))
+            lines.append(
+                self._box_row(f" Hint: {self._truncate(hint, inner_width - 9)}", inner_width)
+            )
+
+        return lines
+
+    def _format_mini_table(
+        self,
+        data: list[dict[str, Any]],
+        keys: list[str],
+        headers: list[str],
+    ) -> str:
+        """Format a small inline table.
+
+        Args:
+            data: List of row dicts
+            keys: Keys to extract from each row
+            headers: Column headers
+
+        Returns:
+            Mini table string
+        """
+        if not data:
+            return ""
+
+        # Calculate column widths
+        widths = []
+        for i, key in enumerate(keys):
+            max_width = max(
+                len(headers[i]),
+                max(len(str(row.get(key, ""))) for row in data),
+            )
+            widths.append(min(max_width + 2, 20))
+
+        c = self.config
+        lines: list[str] = []
+
+        # Top border
+        segments = [c.BOX_H * w for w in widths]
+        lines.append(f"{c.BOX_TL}{c.BOX_TT.join(segments)}{c.BOX_TR}")
+
+        # Header row
+        cells = [f" {h}".ljust(w)[:w] for h, w in zip(headers, widths)]
+        lines.append(f"{c.BOX_V}{c.BOX_V.join(cells)}{c.BOX_V}")
+
+        # Header separator
+        lines.append(f"{c.BOX_LT}{c.BOX_X.join(segments)}{c.BOX_RT}")
+
+        # Data rows
+        for row in data:
+            cells = [f" {str(row.get(k, ''))}".ljust(w)[:w] for k, w in zip(keys, widths)]
+            lines.append(f"{c.BOX_V}{c.BOX_V.join(cells)}{c.BOX_V}")
+
+        # Bottom border
+        lines.append(f"{c.BOX_BL}{c.BOX_BT.join(segments)}{c.BOX_BR}")
+
+        return "\n".join(lines)
+
     # =========================================================================
     # Private Helper Methods - Box Drawing
     # =========================================================================

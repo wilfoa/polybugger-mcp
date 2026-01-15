@@ -679,6 +679,114 @@ async def debug_evaluate(
         return {"error": str(e), "code": "EVAL_ERROR"}
 
 
+@mcp.tool()
+async def debug_inspect_variable(
+    session_id: str,
+    variable_name: str,
+    frame_id: int | None = None,
+    max_preview_rows: int = 5,
+    include_statistics: bool = True,
+    format: str = "json",
+) -> dict[str, Any]:
+    """Inspect a variable with smart type-aware metadata and preview.
+
+    Provides detailed inspection of pandas DataFrames, NumPy arrays,
+    dicts, lists, and other Python objects. Returns structured metadata
+    appropriate for the detected type in a single call.
+
+    Args:
+        session_id: The debug session ID
+        variable_name: Name of the variable to inspect (must be in scope)
+        frame_id: Stack frame to inspect in (uses topmost if not specified)
+        max_preview_rows: Maximum rows/items in preview (default 5, max 100)
+        include_statistics: Include statistical summary for numeric data
+        format: Output format - "json" (default) or "tui" for rich terminal
+
+    Returns:
+        Structured inspection result with:
+        - name: Variable name
+        - type: Display type (e.g., "DataFrame", "ndarray", "dict")
+        - detected_type: Category ("dataframe", "series", "ndarray", etc.)
+        - structure: Type-specific metadata (shape, columns, dtypes, etc.)
+        - preview: Sample data (head rows, key-value pairs, etc.)
+        - statistics: Numerical stats (for numeric types, if requested)
+        - summary: Human-readable one-line summary
+        - warnings: Any warnings (large size, NaN values, etc.)
+        - formatted: ASCII visualization (if format="tui")
+
+    Example:
+        >>> result = debug_inspect_variable(session_id, "df")
+        >>> result
+        {
+            "name": "df",
+            "type": "DataFrame",
+            "detected_type": "dataframe",
+            "structure": {
+                "shape": [1000, 5],
+                "columns": ["id", "name", "value", "date", "status"],
+                "dtypes": {"id": "int64", "name": "object", ...},
+                "memory_bytes": 80000
+            },
+            "preview": {
+                "head": [{"id": 1, "name": "Alice", ...}, ...]
+            },
+            "summary": "DataFrame with 1000 rows x 5 columns, 78.1 KB"
+        }
+    """
+    from pybugger_mcp.models.inspection import InspectionOptions
+
+    manager = _get_manager()
+    try:
+        session = await manager.get_session(session_id)
+
+        # Build options
+        options = InspectionOptions(
+            max_preview_rows=min(max_preview_rows, 100),
+            max_preview_items=min(max_preview_rows * 2, 100),
+            include_statistics=include_statistics,
+        )
+
+        # Perform inspection
+        result = await session.inspect_variable(
+            variable_name=variable_name,
+            frame_id=frame_id,
+            options=options,
+        )
+
+        # Convert to dict
+        result_dict = result.model_dump(exclude_none=True)
+        result_dict["format"] = format
+
+        # Add TUI formatting if requested
+        if format == "tui":
+            formatter = _get_formatter()
+            result_dict["formatted"] = formatter.format_inspection(result_dict)
+
+        return result_dict
+
+    except SessionNotFoundError:
+        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
+    except InvalidSessionStateError as e:
+        return {
+            "error": str(e),
+            "code": "INVALID_STATE",
+            "hint": "Session must be paused at a breakpoint to inspect variables",
+        }
+    except ValueError as e:
+        return {
+            "error": str(e),
+            "code": "INVALID_VARIABLE",
+            "hint": "Check variable name is valid and in scope",
+        }
+    except Exception as e:
+        logger.exception(f"Inspection failed for {variable_name}")
+        return {
+            "error": str(e),
+            "code": "INSPECTION_ERROR",
+            "hint": "Use debug_evaluate for manual inspection",
+        }
+
+
 # =============================================================================
 # Watch Expression Tools
 # =============================================================================

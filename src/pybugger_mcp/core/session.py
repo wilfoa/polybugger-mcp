@@ -403,6 +403,49 @@ class Session:
                 )
         return results
 
+    # Smart inspection methods
+
+    async def inspect_variable(
+        self,
+        variable_name: str,
+        frame_id: int | None = None,
+        options: Any | None = None,
+    ) -> Any:
+        """Inspect a variable with smart type-aware metadata.
+
+        Provides detailed inspection of pandas DataFrames, NumPy arrays,
+        dicts, lists, and other Python objects with structured metadata
+        and preview data.
+
+        Args:
+            variable_name: Name of the variable to inspect
+            frame_id: Stack frame ID (uses topmost if None)
+            options: Inspection options (uses defaults if None)
+
+        Returns:
+            InspectionResult with type-specific metadata
+
+        Raises:
+            InvalidSessionStateError: If session is not paused
+        """
+        from pybugger_mcp.models.inspection import InspectionOptions
+        from pybugger_mcp.utils.data_inspector import get_inspector
+
+        self.require_state(SessionState.PAUSED)
+
+        if self.adapter is None:
+            raise InvalidSessionStateError(self.id, "no adapter", ["initialized"])
+
+        self.touch()
+
+        inspector = get_inspector()
+        return await inspector.inspect(
+            evaluator=self.adapter,
+            variable_name=variable_name,
+            frame_id=frame_id,
+            options=options or InspectionOptions(),
+        )
+
     # Persistence methods
 
     def to_persisted(self, server_shutdown: bool = False) -> PersistedSession:

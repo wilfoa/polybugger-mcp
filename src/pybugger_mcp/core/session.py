@@ -446,6 +446,90 @@ class Session:
             options=options or InspectionOptions(),
         )
 
+    # Call chain methods
+
+    async def get_call_chain(
+        self,
+        thread_id: int | None = None,
+        include_source_context: bool = True,
+        context_lines: int = 2,
+    ) -> dict[str, Any]:
+        """Get the call chain leading to current location with source context.
+
+        Returns the stack trace enriched with source context for each frame,
+        showing how execution arrived at the current location.
+
+        Args:
+            thread_id: Thread ID (uses current thread if None)
+            include_source_context: Whether to include surrounding source lines
+            context_lines: Number of lines before/after each frame (default 2)
+
+        Returns:
+            Dict with:
+                - call_chain: List of frames with source context
+                - total_frames: Number of frames
+                - current_function: Name of current function
+                - entry_point: Name of entry point function
+
+        Raises:
+            InvalidSessionStateError: If session is not paused
+        """
+        from pybugger_mcp.utils.source_reader import (
+            extract_call_expression,
+            get_source_context,
+        )
+
+        self.require_state(SessionState.PAUSED)
+
+        if self.adapter is None:
+            raise InvalidSessionStateError(self.id, "no adapter", ["initialized"])
+
+        self.touch()
+
+        tid = thread_id or self.current_thread_id or 1
+        frames = await self.adapter.stack_trace(tid, start_frame=0, levels=100)
+
+        call_chain: list[dict[str, Any]] = []
+
+        for i, frame in enumerate(frames):
+            file_path = frame.source.path if frame.source else None
+            line = frame.line
+
+            frame_data: dict[str, Any] = {
+                "depth": i,
+                "frame_id": frame.id,
+                "function": frame.name,
+                "file": file_path,
+                "line": line,
+                "column": frame.column,
+            }
+
+            # Add source context if requested and file is available
+            if include_source_context and file_path:
+                context = get_source_context(file_path, line, context_lines)
+                frame_data["source"] = context.get("current")
+                frame_data["context"] = {
+                    "before": context.get("before", []),
+                    "after": context.get("after", []),
+                }
+                frame_data["line_numbers"] = context.get("line_numbers")
+
+                # Try to extract call expression from current frame's source
+                current_source = context.get("current")
+                if current_source and isinstance(current_source, str):
+                    call_expr = extract_call_expression(current_source)
+                    if call_expr:
+                        frame_data["call_expression"] = call_expr
+
+            call_chain.append(frame_data)
+
+        return {
+            "call_chain": call_chain,
+            "total_frames": len(call_chain),
+            "current_function": call_chain[0]["function"] if call_chain else None,
+            "entry_point": call_chain[-1]["function"] if call_chain else None,
+        }
+
     # Persistence methods
 
     def to_persisted(self, server_shutdown: bool = False) -> PersistedSession:

@@ -34,6 +34,7 @@ class TestMCPServerRegistration:
         assert "debug_get_scopes" in tools
         assert "debug_get_variables" in tools
         assert "debug_evaluate" in tools
+        assert "debug_get_call_chain" in tools
 
         # Watch tools
         assert "debug_add_watch" in tools
@@ -52,7 +53,7 @@ class TestMCPServerRegistration:
     def test_tool_count(self):
         """Test total number of tools."""
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 26  # Includes debug_inspect_variable
+        assert len(tools) == 27  # Includes debug_inspect_variable and debug_get_call_chain
 
     def test_server_name(self):
         """Test server name is set."""

@@ -787,6 +787,107 @@ async def debug_inspect_variable(
         }
 
 
+@mcp.tool()
+async def debug_get_call_chain(
+    session_id: str,
+    thread_id: int | None = None,
+    include_source_context: bool = True,
+    context_lines: int = 2,
+    format: str = "json",
+) -> dict[str, Any]:
+    """Get the call chain leading to current location with source context.
+
+    Returns the complete call hierarchy showing how execution arrived at
+    the current location, with optional source context for each frame.
+
+    Args:
+        session_id: The debug session ID
+        thread_id: Thread to get call chain for (uses current if not specified)
+        include_source_context: Include surrounding source lines (default True)
+        context_lines: Number of lines before/after each frame (default 2)
+        format: Output format - "json" (default) or "tui" for rich terminal
+
+    Returns:
+        Call chain with:
+        - call_chain: List of frames from current (depth 0) to entry point
+            Each frame contains:
+            - depth: Distance from current frame (0 = current)
+            - frame_id: DAP frame ID for further inspection
+            - function: Function name
+            - file: Source file path
+            - line: Line number
+            - source: Current line content (if include_source_context)
+            - context: Before/after lines (if include_source_context)
+            - call_expression: The call that led here (if identifiable)
+        - total_frames: Number of frames in call chain
+        - current_function: Name of the current (paused) function
+        - entry_point: Name of the entry point function
+        - formatted: ASCII visualization (if format="tui")
+
+    Example:
+        >>> result = debug_get_call_chain(session_id)
+        >>> result
+        {
+            "call_chain": [
+                {
+                    "depth": 0,
+                    "function": "calculate_total",
+                    "file": "/app/billing.py",
+                    "line": 45,
+                    "source": "        total = sum(items)",
+                    "context": {
+                        "before": ["    def calculate_total(self, items):"],
+                        "after": ["        return total"]
+                    }
+                },
+                {
+                    "depth": 1,
+                    "function": "process_order",
+                    "file": "/app/orders.py",
+                    "line": 123,
+                    "source": "    total = billing.calculate_total(items)",
+                    "call_expression": "billing.calculate_total(items)"
+                },
+                ...
+            ],
+            "total_frames": 3,
+            "current_function": "calculate_total",
+            "entry_point": "main"
+        }
+    """
+    manager = _get_manager()
+    try:
+        session = await manager.get_session(session_id)
+        result = await session.get_call_chain(
+            thread_id=thread_id,
+            include_source_context=include_source_context,
+            context_lines=context_lines,
+        )
+
+        result["format"] = format
+
+        if format == "tui":
+            formatter = _get_formatter()
+            result["formatted"] = formatter.format_call_chain_with_context(
+                result["call_chain"],
+                include_source=include_source_context,
+            )
+
+        return result
+
+    except SessionNotFoundError:
+        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
+    except InvalidSessionStateError as e:
+        return {
+            "error": str(e),
+            "code": "INVALID_STATE",
+            "hint": "Session must be paused at a breakpoint to get call chain",
+        }
+    except Exception as e:
+        logger.exception("Failed to get call chain")
+        return {"error": str(e), "code": "CALL_CHAIN_ERROR"}
+
+
 # =============================================================================
 # Watch Expression Tools
 # =============================================================================

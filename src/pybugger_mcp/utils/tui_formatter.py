@@ -296,6 +296,112 @@ class TUIFormatter:
 
         return "\n".join(lines)
 
+    def format_call_chain_with_context(
+        self,
+        call_chain: list[dict[str, Any]],
+        include_source: bool = True,
+    ) -> str:
+        """Format call chain with source context.
+
+        Shows the call flow from entry point to current location,
+        with source context for each frame.
+
+        Args:
+            call_chain: List of call chain frame dicts with:
+                - depth: int
+                - function: str
+                - file: str | None
+                - line: int
+                - source: str | None
+                - context: dict with 'before' and 'after' lists
+                - call_expression: str | None
+            include_source: Whether to include source context
+
+        Returns:
+            Rich ASCII art call chain with source context.
+
+        Example Output:
+            CALL CHAIN (3 frames)
+            ══════════════════════════════════════════════════════════
+
+            main (app.py:50)
+            │    48 │ def main():
+            │    49 │     order = load_order()
+            │ >> 50 │     process_order(order)
+            │    51 │     return
+            │
+            └─▶ process_order (orders.py:123)
+                │   121 │ def process_order(order):
+                │   122 │     billing = Billing()
+                │ >> 123 │     total = billing.calculate_total(order.items)
+                │   124 │     return total
+                │
+                └─▶ calculate_total (billing.py:45)  ◀── YOU ARE HERE
+                    │    43 │     def calculate_total(self, items):
+                    │    44 │         '''Calculate total with tax.'''
+                    │ >> 45 │         total = sum(items)
+                    │    46 │         return total * (1 + self.tax_rate)
+        """
+        if not call_chain:
+            return "CALL CHAIN\n══════════════════════\n\n  (no frames)"
+
+        lines: list[str] = []
+        frame_count = len(call_chain)
+        lines.append(f"CALL CHAIN ({frame_count} frame{'s' if frame_count != 1 else ''})")
+        lines.append("═" * 60)
+        lines.append("")
+
+        # Reverse to show call order (entry point first)
+        reversed_chain = list(reversed(call_chain))
+
+        for i, frame in enumerate(reversed_chain):
+            # Calculate indent based on position
+            base_indent = "    " * i
+            func_name = frame.get("function", "<unknown>")
+            file_name = self._get_short_filename(frame.get("file"))
+            line = frame.get("line", 0)
+
+            location = f"{func_name} ({file_name}:{line})"
+
+            # Function header line (entry point has no arrow, others do)
+            header = f"{base_indent}{location}" if i == 0 else f"{base_indent}└─▶ {location}"
+
+            # Add "YOU ARE HERE" marker for current frame
+            is_current = i == len(reversed_chain) - 1
+            if is_current:
+                header += "  ◀── YOU ARE HERE"
+
+            lines.append(header)
+
+            # Add source context if available
+            if include_source and frame.get("source") is not None:
+                context = frame.get("context", {})
+                before_lines = context.get("before", [])
+                after_lines = context.get("after", [])
+                current_line = frame.get("source", "")
+                line_numbers = frame.get("line_numbers", {})
+                start_line = line_numbers.get("start", line - len(before_lines))
+
+                # Source indent (deeper than function header)
+                source_indent = base_indent + ("    " if i > 0 else "")
+
+                # Format source lines with line numbers
+                source_lines = before_lines + [current_line] + after_lines
+                line_num_width = len(str(start_line + len(source_lines)))
+
+                for j, src_line in enumerate(source_lines):
+                    line_num = start_line + j
+                    num_str = str(line_num).rjust(line_num_width)
+                    is_current_line = line_num == line
+                    prefix = "│ >>" if is_current_line else "│   "
+                    lines.append(f"{source_indent}{prefix} {num_str} │ {src_line}")
+
+                # Add blank line between frames (except last)
+                if i < len(reversed_chain) - 1:
+                    lines.append(f"{source_indent}│")
+
+        return "\n".join(lines)
+
     def format_inspection(
         self,
         inspection: dict[str, Any],
@@ -1038,3 +1144,19 @@ def format_call_chain(frames: list[dict[str, Any]]) -> str:
         Formatted call chain string
     """
     return get_formatter().format_call_chain(frames)
+
+
+def format_call_chain_with_context(
+    call_chain: list[dict[str, Any]],
+    include_source: bool = True,
+) -> str:
+    """Convenience function to format call chain with source context.
+
+    Args:
+        call_chain: List of call chain frame dicts with source context
+        include_source: Whether to include source context
+
+    Returns:
+        Formatted call chain string with source lines
+    """
+    return get_formatter().format_call_chain_with_context(call_chain, include_source)

@@ -53,8 +53,8 @@ dev = [
 ]
 
 [project.scripts]
-pybugger-mcp = "pybugger_mcp.main:main"
-pybugger-mcp-server = "pybugger_mcp.mcp_server:main"
+pybugger-mcp = "pybugger_mcp.mcp_server:main"
+pybugger-mcp-http = "pybugger_mcp.main:main"
 
 [project.urls]
 Homepage = "https://github.com/wilfoa/pybugger-mcp"

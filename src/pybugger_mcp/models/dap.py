@@ -51,7 +51,9 @@ class LaunchConfig(BaseModel):
     python_path: str | None = None
     stop_on_entry: bool = False
     stop_on_exception: bool = True
-    console: str = "internalConsole"  # internalConsole, integratedTerminal, externalTerminal
+    # Console mode for debugged process
+    console: str = "internalConsole"
+    redirect_input: bool = False
 
 
 class AttachConfig(BaseModel):

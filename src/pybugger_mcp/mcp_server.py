@@ -878,7 +878,15 @@ async def debug_recover_session(session_id: str) -> dict[str, Any]:
 
 def main():
     """Run the MCP server via stdio transport."""
+    import signal
     import sys
+
+    # Ignore SIGTTIN/SIGTTOU to prevent suspension when debugpy subprocesses
+    # try to access the terminal. This allows the MCP server to continue
+    # running even if child processes attempt TTY operations.
+    if sys.platform != "win32":
+        signal.signal(signal.SIGTTIN, signal.SIG_IGN)
+        signal.signal(signal.SIGTTOU, signal.SIG_IGN)
 
     # Configure logging to stderr (stdout is for MCP protocol)
     logging.basicConfig(

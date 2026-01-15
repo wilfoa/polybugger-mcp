@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+import os
+import signal
 import socket
 import sys
 from collections.abc import Callable, Coroutine
@@ -78,7 +80,33 @@ class DebugpyAdapter:
         self._port = _get_free_port()
         python_path = settings.default_python_path or sys.executable
 
+        # Preexec function to fully detach from TTY in child process
+        def _detach_from_tty() -> None:
+            """Detach from controlling TTY to prevent suspension of parent."""
+            # Ignore TTY signals
+            signal.signal(signal.SIGTTIN, signal.SIG_IGN)
+            signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+
+            # Create new session (detaches from controlling terminal)
+            try:
+                os.setsid()
+            except OSError:
+                pass
+
+            # Close and reopen stdin/stdout/stderr to /dev/null
+            # This ensures no TTY access even if debugpy tries
+            try:
+                devnull_fd = os.open(os.devnull, os.O_RDWR)
+                # Only redirect stdin - stdout/stderr are pipes we need
+                os.dup2(devnull_fd, 0)
+                os.close(devnull_fd)
+            except OSError:
+                pass
+
         # Start debugpy adapter in server mode (listening on socket)
+        # - stdin=DEVNULL: prevent reading from parent's stdin
+        # - start_new_session=True: detach from controlling TTY
+        # - preexec_fn: ignore TTY signals in child process
         self._process = await asyncio.create_subprocess_exec(
             python_path,
             "-m",
@@ -87,8 +115,11 @@ class DebugpyAdapter:
             "127.0.0.1",
             "--port",
             str(self._port),
+            stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            start_new_session=True,
+            preexec_fn=_detach_from_tty if sys.platform != "win32" else None,
         )
 
         # Wait for debugpy to start listening
@@ -173,13 +204,21 @@ class DebugpyAdapter:
         """
         self._require_initialized()
 
+        # Merge user env with vars that prevent TTY access in subprocess
+        env = {
+            **config.env,
+            "PYTHONUNBUFFERED": "1",  # Don't buffer output
+            "TERM": "dumb",  # Disable terminal features
+        }
+
         args: dict[str, Any] = {
             "cwd": str(config.cwd),
-            "env": config.env,
+            "env": env,
             "stopOnEntry": config.stop_on_entry,
             "justMyCode": False,  # Always debug all code
             "console": config.console,
             "redirectOutput": True,
+            "redirectInput": config.redirect_input,
         }
 
         if config.program:

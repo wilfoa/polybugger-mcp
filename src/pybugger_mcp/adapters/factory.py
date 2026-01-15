@@ -127,8 +127,12 @@ def _register_builtin_adapters() -> None:
     except ImportError:
         pass
 
+    try:
+        from pybugger_mcp.adapters import node_adapter  # noqa: F401
+    except ImportError:
+        pass
+
     # Future adapters:
-    # from pybugger_mcp.adapters import node_adapter  # noqa: F401
     # from pybugger_mcp.adapters import delve_adapter  # noqa: F401
     # from pybugger_mcp.adapters import lldb_adapter  # noqa: F401
 

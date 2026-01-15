@@ -26,11 +26,23 @@ from pybugger_mcp.core.exceptions import (
 from pybugger_mcp.core.session import SessionManager
 from pybugger_mcp.models.dap import LaunchConfig, SourceBreakpoint
 from pybugger_mcp.models.session import SessionConfig
+from pybugger_mcp.utils.tui_formatter import TUIFormatter
 
 logger = logging.getLogger(__name__)
 
 # Global session manager (initialized in lifespan)
 _session_manager: SessionManager | None = None
+
+# Global TUI formatter instance
+_tui_formatter: TUIFormatter | None = None
+
+
+def _get_formatter() -> TUIFormatter:
+    """Get the TUI formatter, creating if needed."""
+    global _tui_formatter
+    if _tui_formatter is None:
+        _tui_formatter = TUIFormatter()
+    return _tui_formatter
 
 
 @asynccontextmanager
@@ -498,6 +510,7 @@ async def debug_get_stacktrace(
     session_id: str,
     thread_id: int | None = None,
     max_frames: int = 20,
+    format: str = "json",
 ) -> dict[str, Any]:
     """Get the call stack when paused.
 
@@ -505,27 +518,39 @@ async def debug_get_stacktrace(
         session_id: The debug session ID
         thread_id: Thread to get stack for (uses current thread if not specified)
         max_frames: Maximum number of frames to return
+        format: Output format - "json" (structured data) or "tui" (rich terminal)
 
     Returns:
-        Stack frames with file, line, and function information
+        Stack frames with file, line, and function information.
+        If format="tui", includes formatted tables and call chain diagram.
     """
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
         frames = await session.get_stack_trace(thread_id, levels=max_frames)
-        return {
-            "frames": [
-                {
-                    "id": f.id,
-                    "name": f.name,
-                    "file": f.source.path if f.source else None,
-                    "line": f.line,
-                    "column": f.column,
-                }
-                for f in frames
-            ],
+        frame_dicts = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "file": f.source.path if f.source else None,
+                "line": f.line,
+                "column": f.column,
+            }
+            for f in frames
+        ]
+
+        result: dict[str, Any] = {
+            "frames": frame_dicts,
             "total": len(frames),
+            "format": format,
         }
+
+        if format == "tui":
+            formatter = _get_formatter()
+            result["formatted"] = formatter.format_stack_trace(frame_dicts)
+            result["call_chain"] = formatter.format_call_chain(frame_dicts)
+
+        return result
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
 
@@ -534,30 +559,42 @@ async def debug_get_stacktrace(
 async def debug_get_scopes(
     session_id: str,
     frame_id: int,
+    format: str = "json",
 ) -> dict[str, Any]:
     """Get variable scopes (locals, globals) for a stack frame.
 
     Args:
         session_id: The debug session ID
         frame_id: Frame ID from debug_get_stacktrace
+        format: Output format - "json" (structured data) or "tui" (rich terminal)
 
     Returns:
-        List of scopes with their variables_reference for fetching variables
+        List of scopes with their variables_reference for fetching variables.
+        If format="tui", includes formatted table.
     """
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
         scopes = await session.get_scopes(frame_id)
-        return {
-            "scopes": [
-                {
-                    "name": s.name,
-                    "variables_reference": s.variables_reference,
-                    "expensive": s.expensive,
-                }
-                for s in scopes
-            ]
+        scope_dicts = [
+            {
+                "name": s.name,
+                "variables_reference": s.variables_reference,
+                "expensive": s.expensive,
+            }
+            for s in scopes
+        ]
+
+        result: dict[str, Any] = {
+            "scopes": scope_dicts,
+            "format": format,
         }
+
+        if format == "tui":
+            formatter = _get_formatter()
+            result["formatted"] = formatter.format_scopes(scope_dicts)
+
+        return result
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
 
@@ -567,6 +604,7 @@ async def debug_get_variables(
     session_id: str,
     variables_reference: int,
     max_count: int = 100,
+    format: str = "json",
 ) -> dict[str, Any]:
     """Get variables for a scope or compound variable.
 
@@ -574,26 +612,37 @@ async def debug_get_variables(
         session_id: The debug session ID
         variables_reference: Reference from debug_get_scopes or nested variable
         max_count: Maximum variables to return
+        format: Output format - "json" (structured data) or "tui" (rich terminal)
 
     Returns:
-        List of variables with names, values, and types
+        List of variables with names, values, and types.
+        If format="tui", includes formatted table.
     """
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
         variables = await session.get_variables(variables_reference, count=max_count)
-        return {
-            "variables": [
-                {
-                    "name": v.name,
-                    "value": v.value,
-                    "type": v.type,
-                    "variables_reference": v.variables_reference,
-                    "has_children": v.variables_reference > 0,
-                }
-                for v in variables
-            ]
+        var_dicts = [
+            {
+                "name": v.name,
+                "value": v.value,
+                "type": v.type,
+                "variables_reference": v.variables_reference,
+                "has_children": v.variables_reference > 0,
+            }
+            for v in variables
+        ]
+
+        result: dict[str, Any] = {
+            "variables": var_dicts,
+            "format": format,
         }
+
+        if format == "tui":
+            formatter = _get_formatter()
+            result["formatted"] = formatter.format_variables(var_dicts)
+
+        return result
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
 

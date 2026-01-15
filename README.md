@@ -212,7 +212,7 @@ Or in your MCP config:
 ```
 </details>
 
-## Available Tools (27 tools)
+## Available Tools (23 tools)
 
 ### Session Management
 | Tool | Description |
@@ -234,9 +234,7 @@ Or in your MCP config:
 |------|-------------|
 | `debug_launch` | Launch a Python program for debugging |
 | `debug_continue` | Continue execution until next breakpoint |
-| `debug_step_over` | Step to the next line (skip function calls) |
-| `debug_step_into` | Step into a function call |
-| `debug_step_out` | Step out of the current function |
+| `debug_step` | Step execution: `mode="over"` (next line), `"into"` (enter function), `"out"` (exit function) |
 | `debug_pause` | Pause a running program |
 
 ### Inspection
@@ -252,9 +250,7 @@ Or in your MCP config:
 ### Watch Expressions
 | Tool | Description |
 |------|-------------|
-| `debug_add_watch` | Add a watch expression |
-| `debug_remove_watch` | Remove a watch expression |
-| `debug_list_watches` | List all watch expressions |
+| `debug_watch` | Manage watches: `action="add"`, `"remove"`, or `"list"` |
 | `debug_evaluate_watches` | Evaluate all watch expressions |
 
 ### Events & Output

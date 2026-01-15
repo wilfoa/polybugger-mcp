@@ -146,26 +146,36 @@ class DebugAdapter(ABC):
         ...
 
     @abstractmethod
-    async def launch(self, config: LaunchConfig) -> None:
+    async def launch(self, config: LaunchConfig | Any, **kwargs: Any) -> None:
         """Launch a program for debugging.
 
         Args:
-            config: Launch configuration
+            config: Launch configuration (adapter-specific type allowed)
+            **kwargs: Additional adapter-specific options
 
         Raises:
             LaunchError: If launch fails
+
+        Note:
+            Each adapter may accept its own config type with language-specific
+            options. The base LaunchConfig provides common options.
         """
         ...
 
     @abstractmethod
-    async def attach(self, config: AttachConfig) -> None:
+    async def attach(self, config: AttachConfig | Any, **kwargs: Any) -> None:
         """Attach to a running process.
 
         Args:
-            config: Attach configuration
+            config: Attach configuration (adapter-specific type allowed)
+            **kwargs: Additional adapter-specific options
 
         Raises:
             LaunchError: If attach fails
+
+        Note:
+            Each adapter may accept its own config type with language-specific
+            options. The base AttachConfig provides common options.
         """
         ...
 

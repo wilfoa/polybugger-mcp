@@ -9,6 +9,13 @@ import sys
 from collections.abc import Callable, Coroutine
 from typing import Any
 
+from pybugger_mcp.adapters.base import (
+    AttachConfig as BaseAttachConfig,
+    DebugAdapter,
+    Language,
+    LaunchConfig as BaseLaunchConfig,
+)
+from pybugger_mcp.adapters.factory import register_adapter
 from pybugger_mcp.adapters.dap_client import DAPClient
 from pybugger_mcp.config import settings
 from pybugger_mcp.core.exceptions import DAPConnectionError, LaunchError
@@ -35,7 +42,8 @@ def _get_free_port() -> int:
         return port
 
 
-class DebugpyAdapter:
+@register_adapter(Language.PYTHON)
+class DebugpyAdapter(DebugAdapter):
     """Adapter for communicating with debugpy via DAP.
 
     Manages a debugpy adapter subprocess and translates high-level
@@ -56,9 +64,7 @@ class DebugpyAdapter:
             output_callback: Callback for output (category, content)
             event_callback: Async callback for debug events
         """
-        self.session_id = session_id
-        self._output_callback = output_callback
-        self._event_callback = event_callback
+        super().__init__(session_id, output_callback, event_callback)
 
         self._process: asyncio.subprocess.Process | None = None
         self._client: DAPClient | None = None
@@ -69,6 +75,16 @@ class DebugpyAdapter:
         self._capabilities: dict[str, Any] = {}
         self._launched = False
         self._initialized_event: asyncio.Event | None = None
+
+    @property
+    def language(self) -> Language:
+        """The language this adapter supports."""
+        return Language.PYTHON
+
+    @property
+    def is_connected(self) -> bool:
+        """Whether the adapter is connected to the debug server."""
+        return self._client is not None and self._initialized
 
     async def initialize(self) -> dict[str, Any]:
         """Start debugpy and initialize DAP connection.
@@ -340,13 +356,17 @@ class DebugpyAdapter:
         finally:
             self._initialized_event = None
 
-    async def disconnect(self) -> None:
-        """Disconnect and cleanup."""
+    async def disconnect(self, terminate: bool = True) -> None:
+        """Disconnect and cleanup.
+
+        Args:
+            terminate: Whether to terminate the debuggee (default True)
+        """
         if self._client:
             try:
                 await self._client.send_request(
                     "disconnect",
-                    {"terminateDebuggee": True},
+                    {"terminateDebuggee": terminate},
                     timeout=5.0,
                 )
             except Exception:
@@ -377,6 +397,10 @@ class DebugpyAdapter:
         self._launched = False
         self._port = None
         logger.info(f"Session {self.session_id}: disconnected")
+
+    async def terminate(self) -> None:
+        """Terminate the debug target and cleanup."""
+        await self.disconnect(terminate=True)
 
     async def set_breakpoints(
         self,
@@ -433,52 +457,86 @@ class DebugpyAdapter:
             {"filters": filters},
         )
 
-    async def continue_(self, thread_id: int) -> None:
+    async def set_function_breakpoints(self, names: list[str]) -> list[Breakpoint]:
+        """Set breakpoints on function names.
+
+        Args:
+            names: List of function names
+
+        Returns:
+            List of actual breakpoints
+        """
+        self._require_initialized()
+
+        breakpoints = [{"name": name} for name in names]
+        response = await self._client.send_request(  # type: ignore
+            "setFunctionBreakpoints",
+            {"breakpoints": breakpoints},
+        )
+
+        return [Breakpoint(**bp) for bp in response.get("breakpoints", [])]
+
+    async def continue_execution(self, thread_id: int | None = None) -> None:
         """Continue execution.
 
         Args:
-            thread_id: Thread to continue
+            thread_id: Thread to continue (required for debugpy)
         """
         self._require_initialized()
+        if thread_id is None:
+            raise ValueError("thread_id is required for debugpy")
         await self._client.send_request("continue", {"threadId": thread_id})  # type: ignore
 
-    async def pause(self, thread_id: int) -> None:
+    # Alias for backward compatibility
+    async def continue_(self, thread_id: int) -> None:
+        """Continue execution (deprecated, use continue_execution)."""
+        await self.continue_execution(thread_id)
+
+    async def pause(self, thread_id: int | None = None) -> None:
         """Pause execution.
 
         Args:
-            thread_id: Thread to pause
+            thread_id: Thread to pause (required for debugpy)
         """
         self._require_initialized()
+        if thread_id is None:
+            raise ValueError("thread_id is required for debugpy")
         await self._client.send_request("pause", {"threadId": thread_id})  # type: ignore
 
-    async def step_over(self, thread_id: int) -> None:
+    async def step_over(self, thread_id: int | None = None) -> None:
         """Step over (next line).
 
         Args:
-            thread_id: Thread to step
+            thread_id: Thread to step (required for debugpy)
         """
         self._require_initialized()
+        if thread_id is None:
+            raise ValueError("thread_id is required for debugpy")
         await self._client.send_request("next", {"threadId": thread_id})  # type: ignore
 
-    async def step_into(self, thread_id: int) -> None:
+    async def step_into(self, thread_id: int | None = None) -> None:
         """Step into function.
 
         Args:
-            thread_id: Thread to step
+            thread_id: Thread to step (required for debugpy)
         """
         self._require_initialized()
+        if thread_id is None:
+            raise ValueError("thread_id is required for debugpy")
         await self._client.send_request("stepIn", {"threadId": thread_id})  # type: ignore
 
-    async def step_out(self, thread_id: int) -> None:
+    async def step_out(self, thread_id: int | None = None) -> None:
         """Step out of function.
 
         Args:
-            thread_id: Thread to step
+            thread_id: Thread to step (required for debugpy)
         """
         self._require_initialized()
+        if thread_id is None:
+            raise ValueError("thread_id is required for debugpy")
         await self._client.send_request("stepOut", {"threadId": thread_id})  # type: ignore
 
-    async def threads(self) -> list[Thread]:
+    async def get_threads(self) -> list[Thread]:
         """Get all threads.
 
         Returns:
@@ -488,7 +546,12 @@ class DebugpyAdapter:
         response = await self._client.send_request("threads")  # type: ignore
         return [Thread(**t) for t in response.get("threads", [])]
 
-    async def stack_trace(
+    # Alias for backward compatibility
+    async def threads(self) -> list[Thread]:
+        """Get all threads (deprecated, use get_threads)."""
+        return await self.get_threads()
+
+    async def get_stack_trace(
         self,
         thread_id: int,
         start_frame: int = 0,
@@ -517,7 +580,17 @@ class DebugpyAdapter:
 
         return [StackFrame(**f) for f in response.get("stackFrames", [])]
 
-    async def scopes(self, frame_id: int) -> list[Scope]:
+    # Alias for backward compatibility
+    async def stack_trace(
+        self,
+        thread_id: int,
+        start_frame: int = 0,
+        levels: int = 20,
+    ) -> list[StackFrame]:
+        """Get stack trace (deprecated, use get_stack_trace)."""
+        return await self.get_stack_trace(thread_id, start_frame, levels)
+
+    async def get_scopes(self, frame_id: int) -> list[Scope]:
         """Get scopes for a stack frame.
 
         Args:
@@ -535,18 +608,23 @@ class DebugpyAdapter:
 
         return [Scope(**s) for s in response.get("scopes", [])]
 
-    async def variables(
+    # Alias for backward compatibility
+    async def scopes(self, frame_id: int) -> list[Scope]:
+        """Get scopes (deprecated, use get_scopes)."""
+        return await self.get_scopes(frame_id)
+
+    async def get_variables(
         self,
-        variables_ref: int,
+        variables_reference: int,
         start: int = 0,
         count: int = 100,
     ) -> list[Variable]:
         """Get variables for a scope or variable reference.
 
         Args:
-            variables_ref: Variable reference ID
+            variables_reference: Variable reference ID
             start: Starting index
-            count: Maximum variables to return
+            count: Maximum variables to return (0 = all)
 
         Returns:
             List of variables
@@ -556,13 +634,23 @@ class DebugpyAdapter:
         response = await self._client.send_request(  # type: ignore
             "variables",
             {
-                "variablesReference": variables_ref,
+                "variablesReference": variables_reference,
                 "start": start,
-                "count": count,
+                "count": count if count > 0 else 100,
             },
         )
 
         return [Variable(**v) for v in response.get("variables", [])]
+
+    # Alias for backward compatibility
+    async def variables(
+        self,
+        variables_ref: int,
+        start: int = 0,
+        count: int = 100,
+    ) -> list[Variable]:
+        """Get variables (deprecated, use get_variables)."""
+        return await self.get_variables(variables_ref, start, count)
 
     async def evaluate(
         self,

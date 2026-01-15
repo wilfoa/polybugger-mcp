@@ -12,25 +12,49 @@ from typing import Any
 class TUIConfig:
     """Configuration for TUI formatting."""
 
-    max_width: int = 100
-    value_max_len: int = 50
-    name_max_len: int = 30
-    type_max_len: int = 20
-    file_max_len: int = 40
+    max_width: int = 80
+    value_max_len: int = 40
+    name_max_len: int = 25
+    type_max_len: int = 15
+    file_max_len: int = 30
     show_frame_ids: bool = False
 
-    # Box drawing characters
-    BOX_TL: str = "┌"  # Top-left
-    BOX_TR: str = "┐"  # Top-right
-    BOX_BL: str = "└"  # Bottom-left
-    BOX_BR: str = "┘"  # Bottom-right
-    BOX_H: str = "─"  # Horizontal
-    BOX_V: str = "│"  # Vertical
-    BOX_LT: str = "├"  # Left-tee
-    BOX_RT: str = "┤"  # Right-tee
-    BOX_TT: str = "┬"  # Top-tee
-    BOX_BT: str = "┴"  # Bottom-tee
-    BOX_X: str = "┼"  # Cross
+    # Summarization limits (0 = no limit)
+    max_variables: int = 15
+    max_frames: int = 10
+    max_source_lines: int = 5
+
+    # Use ASCII instead of Unicode box drawing (better tokenization)
+    ascii_mode: bool = True
+
+    # Box drawing characters (set by __post_init__ based on ascii_mode)
+    BOX_TL: str = "+"
+    BOX_TR: str = "+"
+    BOX_BL: str = "+"
+    BOX_BR: str = "+"
+    BOX_H: str = "-"
+    BOX_V: str = "|"
+    BOX_LT: str = "+"
+    BOX_RT: str = "+"
+    BOX_TT: str = "+"
+    BOX_BT: str = "+"
+    BOX_X: str = "+"
+
+    def __post_init__(self) -> None:
+        """Set box characters based on ascii_mode."""
+        if not self.ascii_mode:
+            # Unicode box drawing (prettier but more tokens)
+            self.BOX_TL = "┌"
+            self.BOX_TR = "┐"
+            self.BOX_BL = "└"
+            self.BOX_BR = "┘"
+            self.BOX_H = "─"
+            self.BOX_V = "│"
+            self.BOX_LT = "├"
+            self.BOX_RT = "┤"
+            self.BOX_TT = "┬"
+            self.BOX_BT = "┴"
+            self.BOX_X = "┼"
 
 
 class TUIFormatter:
@@ -88,6 +112,15 @@ class TUIFormatter:
         if not frames:
             return self._empty_box(title, "No frames available")
 
+        # Apply summarization limit
+        total_count = len(frames)
+        truncated = False
+        if self.config.max_frames > 0 and total_count > self.config.max_frames:
+            # Keep first few and last few frames
+            half = self.config.max_frames // 2
+            frames = frames[:half] + frames[-(self.config.max_frames - half) :]
+            truncated = True
+
         # Calculate column widths
         widths = self._calculate_stack_widths(frames)
         inner_width = self.config.max_width - 2  # Account for borders
@@ -96,9 +129,11 @@ class TUIFormatter:
 
         # Header
         header_text = f" {title}"
-        frame_count = f"{len(frames)} frame{'s' if len(frames) != 1 else ''} "
-        header_padding = inner_width - len(header_text) - len(frame_count)
-        header = f"{header_text}{' ' * max(0, header_padding)}{frame_count}"
+        count_str = (
+            f"{total_count} frames" if not truncated else f"{len(frames)}/{total_count} frames"
+        )
+        header_padding = inner_width - len(header_text) - len(count_str) - 1
+        header = f"{header_text}{' ' * max(0, header_padding)}{count_str} "
 
         lines.append(self._box_top(inner_width))
         lines.append(self._box_row(header, inner_width))
@@ -108,6 +143,10 @@ class TUIFormatter:
         for i, frame in enumerate(frames):
             frame_line = self._format_stack_frame(i, frame, widths, inner_width)
             lines.append(self._box_row(frame_line, inner_width))
+            # Add truncation indicator after first half
+            if truncated and i == (self.config.max_frames // 2) - 1:
+                omitted = total_count - len(frames)
+                lines.append(self._box_row(f" ... {omitted} frames omitted ...", inner_width))
 
         lines.append(self._box_bottom(inner_width))
 
@@ -146,15 +185,24 @@ class TUIFormatter:
         if not variables:
             return self._empty_box(title, "No variables available")
 
+        # Apply summarization limit
+        total_count = len(variables)
+        truncated = False
+        if self.config.max_variables > 0 and total_count > self.config.max_variables:
+            variables = variables[: self.config.max_variables]
+            truncated = True
+
         # Calculate column widths
         col_widths = self._calculate_variable_widths(variables)
         inner_width = self.config.max_width - 2
 
         lines: list[str] = []
 
-        # Title row
+        # Title row with count
+        count_str = f"{total_count} vars" if not truncated else f"{len(variables)}/{total_count}"
+        title_line = f" {title} ({count_str})"
         lines.append(self._box_top(inner_width))
-        lines.append(self._box_row(f" {title}", inner_width))
+        lines.append(self._box_row(title_line, inner_width))
 
         # Column headers
         lines.append(self._table_separator(col_widths, "top"))
@@ -168,13 +216,18 @@ class TUIFormatter:
             type_str = self._truncate(var.get("type", "") or "", col_widths[1] - 1)
             value = self._truncate(var.get("value", ""), col_widths[2] - 1)
 
-            # Add indicator for expandable variables
+            # Add indicator for expandable variables (use ASCII arrow)
             if var.get("has_children") or var.get("variables_reference", 0) > 0:
                 if len(name) < col_widths[0] - 3:
-                    name = name + " ▸"
+                    name = name + " >"
 
             row = self._table_row([name, type_str, value], col_widths)
             lines.append(self._box_row(row, inner_width))
+
+        # Add truncation notice
+        if truncated:
+            omitted = total_count - len(variables)
+            lines.append(self._box_row(f" ... {omitted} more variables omitted", inner_width))
 
         lines.append(self._table_separator(col_widths, "bottom"))
 
@@ -343,47 +396,68 @@ class TUIFormatter:
                     │    46 │         return total * (1 + self.tax_rate)
         """
         if not call_chain:
-            return "CALL CHAIN\n══════════════════════\n\n  (no frames)"
+            return "CALL CHAIN\n======================\n\n  (no frames)"
+
+        # Apply frame limit
+        total_frames = len(call_chain)
+        truncated = False
+        if self.config.max_frames > 0 and total_frames > self.config.max_frames:
+            # Keep first and last frames
+            half = self.config.max_frames // 2
+            call_chain = call_chain[:half] + call_chain[-(self.config.max_frames - half) :]
+            truncated = True
 
         lines: list[str] = []
-        frame_count = len(call_chain)
-        lines.append(f"CALL CHAIN ({frame_count} frame{'s' if frame_count != 1 else ''})")
-        lines.append("═" * 60)
+        count_str = (
+            f"{total_frames} frames"
+            if not truncated
+            else f"{len(call_chain)}/{total_frames} frames"
+        )
+        lines.append(f"CALL CHAIN ({count_str})")
+        lines.append("=" * 50)
         lines.append("")
 
         # Reverse to show call order (entry point first)
         reversed_chain = list(reversed(call_chain))
 
         for i, frame in enumerate(reversed_chain):
-            # Calculate indent based on position
-            base_indent = "    " * i
+            # Calculate indent based on position (cap indent to avoid runaway)
+            indent_level = min(i, 5)
+            base_indent = "  " * indent_level
             func_name = frame.get("function", "<unknown>")
             file_name = self._get_short_filename(frame.get("file"))
             line = frame.get("line", 0)
 
             location = f"{func_name} ({file_name}:{line})"
 
-            # Function header line (entry point has no arrow, others do)
-            header = f"{base_indent}{location}" if i == 0 else f"{base_indent}└─▶ {location}"
+            # Function header line (use ASCII arrows)
+            header = f"{base_indent}{location}" if i == 0 else f"{base_indent}+-> {location}"
 
-            # Add "YOU ARE HERE" marker for current frame
+            # Add "YOU ARE HERE" marker for current frame (ASCII)
             is_current = i == len(reversed_chain) - 1
             if is_current:
-                header += "  ◀── YOU ARE HERE"
+                header += "  <-- HERE"
 
             lines.append(header)
 
-            # Add source context if available
+            # Add source context if available (with line limit)
             if include_source and frame.get("source") is not None:
                 context = frame.get("context", {})
                 before_lines = context.get("before", [])
                 after_lines = context.get("after", [])
                 current_line = frame.get("source", "")
                 line_numbers = frame.get("line_numbers", {})
+
+                # Limit context lines
+                max_ctx = self.config.max_source_lines // 2
+                if max_ctx > 0:
+                    before_lines = before_lines[-max_ctx:]
+                    after_lines = after_lines[:max_ctx]
+
                 start_line = line_numbers.get("start", line - len(before_lines))
 
                 # Source indent (deeper than function header)
-                source_indent = base_indent + ("    " if i > 0 else "")
+                source_indent = base_indent + ("  " if i > 0 else "")
 
                 # Format source lines with line numbers
                 source_lines = before_lines + [current_line] + after_lines
@@ -393,12 +467,20 @@ class TUIFormatter:
                     line_num = start_line + j
                     num_str = str(line_num).rjust(line_num_width)
                     is_current_line = line_num == line
-                    prefix = "│ >>" if is_current_line else "│   "
-                    lines.append(f"{source_indent}{prefix} {num_str} │ {src_line}")
+                    prefix = "| >>" if is_current_line else "|   "
+                    # Truncate long source lines
+                    if len(src_line) > 60:
+                        src_line = src_line[:57] + "..."
+                    lines.append(f"{source_indent}{prefix} {num_str} | {src_line}")
 
                 # Add blank line between frames (except last)
                 if i < len(reversed_chain) - 1:
-                    lines.append(f"{source_indent}│")
+                    lines.append(f"{source_indent}|")
+
+            # Add truncation indicator
+            if truncated and i == (len(reversed_chain) // 2) - 1:
+                omitted = total_frames - len(call_chain)
+                lines.append(f"{base_indent}  ... {omitted} frames omitted ...")
 
         return "\n".join(lines)
 

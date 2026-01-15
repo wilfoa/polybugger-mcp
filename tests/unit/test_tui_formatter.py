@@ -20,23 +20,38 @@ class TestTUIConfig:
         """Test default configuration values."""
         config = TUIConfig()
 
-        assert config.max_width == 100
-        assert config.value_max_len == 50
-        assert config.name_max_len == 30
-        assert config.type_max_len == 20
-        assert config.file_max_len == 40
+        assert config.max_width == 80
+        assert config.value_max_len == 40
+        assert config.name_max_len == 25
+        assert config.type_max_len == 15
+        assert config.file_max_len == 30
         assert config.show_frame_ids is False
+        assert config.ascii_mode is True
+        assert config.max_variables == 15
+        assert config.max_frames == 10
+        assert config.max_source_lines == 5
 
     def test_custom_values(self) -> None:
         """Test custom configuration values."""
-        config = TUIConfig(max_width=80, value_max_len=30)
+        config = TUIConfig(max_width=100, value_max_len=30)
 
-        assert config.max_width == 80
+        assert config.max_width == 100
         assert config.value_max_len == 30
 
-    def test_box_characters(self) -> None:
-        """Test box drawing characters are set."""
+    def test_ascii_box_characters(self) -> None:
+        """Test ASCII box drawing characters (default)."""
         config = TUIConfig()
+
+        assert config.BOX_TL == "+"
+        assert config.BOX_TR == "+"
+        assert config.BOX_BL == "+"
+        assert config.BOX_BR == "+"
+        assert config.BOX_H == "-"
+        assert config.BOX_V == "|"
+
+    def test_unicode_box_characters(self) -> None:
+        """Test Unicode box drawing characters when ascii_mode=False."""
+        config = TUIConfig(ascii_mode=False)
 
         assert config.BOX_TL == "┌"
         assert config.BOX_TR == "┐"
@@ -172,17 +187,17 @@ class TestTUIFormatter:
         formatter: TUIFormatter,
         sample_frames: list[dict],
     ) -> None:
-        """Test that output has proper box borders."""
+        """Test that output has proper box borders (ASCII by default)."""
         output = formatter.format_stack_trace(sample_frames)
         lines = output.split("\n")
 
-        # First line should start with top-left corner
-        assert lines[0].startswith("┌")
-        assert lines[0].endswith("┐")
+        # First line should start with top-left corner (ASCII +)
+        assert lines[0].startswith("+")
+        assert lines[0].endswith("+")
 
-        # Last line should start with bottom-left corner
-        assert lines[-1].startswith("└")
-        assert lines[-1].endswith("┘")
+        # Last line should start with bottom-left corner (ASCII +)
+        assert lines[-1].startswith("+")
+        assert lines[-1].endswith("+")
 
     def test_format_stack_trace_no_file(self, formatter: TUIFormatter) -> None:
         """Test formatting frame with no file."""
@@ -234,7 +249,7 @@ class TestTUIFormatter:
         self,
         formatter: TUIFormatter,
     ) -> None:
-        """Test expandable variable indicator."""
+        """Test expandable variable indicator (ASCII >)."""
         variables = [
             {
                 "name": "data",
@@ -246,8 +261,8 @@ class TestTUIFormatter:
         ]
         output = formatter.format_variables(variables)
 
-        # Should have expand indicator
-        assert "▸" in output
+        # Should have expand indicator (ASCII >)
+        assert ">" in output
 
     def test_format_variables_long_value_truncated(
         self,

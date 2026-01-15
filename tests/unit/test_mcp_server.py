@@ -24,9 +24,7 @@ class TestMCPServerRegistration:
         # Execution tools
         assert "debug_launch" in tools
         assert "debug_continue" in tools
-        assert "debug_step_over" in tools
-        assert "debug_step_into" in tools
-        assert "debug_step_out" in tools
+        assert "debug_step" in tools  # Merged: over/into/out
         assert "debug_pause" in tools
 
         # Inspection tools
@@ -34,12 +32,11 @@ class TestMCPServerRegistration:
         assert "debug_get_scopes" in tools
         assert "debug_get_variables" in tools
         assert "debug_evaluate" in tools
+        assert "debug_inspect_variable" in tools
         assert "debug_get_call_chain" in tools
 
         # Watch tools
-        assert "debug_add_watch" in tools
-        assert "debug_remove_watch" in tools
-        assert "debug_list_watches" in tools
+        assert "debug_watch" in tools  # Merged: add/remove/list
         assert "debug_evaluate_watches" in tools
 
         # Event/output tools
@@ -53,7 +50,8 @@ class TestMCPServerRegistration:
     def test_tool_count(self):
         """Test total number of tools."""
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 27  # Includes debug_inspect_variable and debug_get_call_chain
+        # 27 - 2 (merged step) - 2 (merged watch) = 23 tools
+        assert len(tools) == 23
 
     def test_server_name(self):
         """Test server name is set."""

@@ -6,7 +6,6 @@ import pybugger_mcp.mcp_server as mcp_server
 from pybugger_mcp.core.session import SessionManager
 from pybugger_mcp.mcp_server import (
     _get_manager,
-    debug_add_watch,
     debug_clear_breakpoints,
     debug_continue,
     debug_create_session,
@@ -21,16 +20,13 @@ from pybugger_mcp.mcp_server import (
     debug_launch,
     debug_list_recoverable,
     debug_list_sessions,
-    debug_list_watches,
     debug_pause,
     debug_poll_events,
     debug_recover_session,
-    debug_remove_watch,
     debug_set_breakpoints,
-    debug_step_into,
-    debug_step_out,
-    debug_step_over,
+    debug_step,
     debug_terminate_session,
+    debug_watch,
 )
 
 
@@ -267,66 +263,88 @@ class TestWatchTools:
     """Tests for watch expression tools."""
 
     @pytest.mark.asyncio
-    async def test_add_watch(self, session_manager, tmp_path):
-        """Test debug_add_watch tool."""
+    async def test_watch_add(self, session_manager, tmp_path):
+        """Test debug_watch add action."""
         create_result = await debug_create_session(project_root=str(tmp_path))
         session_id = create_result["session_id"]
 
-        result = await debug_add_watch(session_id=session_id, expression="x + y")
+        result = await debug_watch(session_id=session_id, action="add", expression="x + y")
 
         assert "watches" in result
         assert "x + y" in result["watches"]
 
     @pytest.mark.asyncio
-    async def test_add_watch_not_found(self, session_manager):
-        """Test debug_add_watch with non-existent session."""
-        result = await debug_add_watch(session_id="nonexistent", expression="x")
+    async def test_watch_add_not_found(self, session_manager):
+        """Test debug_watch add with non-existent session."""
+        result = await debug_watch(session_id="nonexistent", action="add", expression="x")
 
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
 
     @pytest.mark.asyncio
-    async def test_remove_watch(self, session_manager, tmp_path):
-        """Test debug_remove_watch tool."""
+    async def test_watch_add_missing_expression(self, session_manager, tmp_path):
+        """Test debug_watch add without expression."""
         create_result = await debug_create_session(project_root=str(tmp_path))
         session_id = create_result["session_id"]
 
-        await debug_add_watch(session_id=session_id, expression="x")
+        result = await debug_watch(session_id=session_id, action="add")
 
-        result = await debug_remove_watch(session_id=session_id, expression="x")
+        assert "error" in result
+        assert result["code"] == "MISSING_EXPRESSION"
+
+    @pytest.mark.asyncio
+    async def test_watch_remove(self, session_manager, tmp_path):
+        """Test debug_watch remove action."""
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        await debug_watch(session_id=session_id, action="add", expression="x")
+
+        result = await debug_watch(session_id=session_id, action="remove", expression="x")
 
         assert "watches" in result
         assert "x" not in result["watches"]
 
     @pytest.mark.asyncio
-    async def test_remove_watch_not_found(self, session_manager):
-        """Test debug_remove_watch with non-existent session."""
-        result = await debug_remove_watch(session_id="nonexistent", expression="x")
+    async def test_watch_remove_not_found(self, session_manager):
+        """Test debug_watch remove with non-existent session."""
+        result = await debug_watch(session_id="nonexistent", action="remove", expression="x")
 
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
 
     @pytest.mark.asyncio
-    async def test_list_watches(self, session_manager, tmp_path):
-        """Test debug_list_watches tool."""
+    async def test_watch_list(self, session_manager, tmp_path):
+        """Test debug_watch list action."""
         create_result = await debug_create_session(project_root=str(tmp_path))
         session_id = create_result["session_id"]
 
-        await debug_add_watch(session_id=session_id, expression="a")
-        await debug_add_watch(session_id=session_id, expression="b")
+        await debug_watch(session_id=session_id, action="add", expression="a")
+        await debug_watch(session_id=session_id, action="add", expression="b")
 
-        result = await debug_list_watches(session_id=session_id)
+        result = await debug_watch(session_id=session_id, action="list")
 
         assert "watches" in result
         assert len(result["watches"]) == 2
 
     @pytest.mark.asyncio
-    async def test_list_watches_not_found(self, session_manager):
-        """Test debug_list_watches with non-existent session."""
-        result = await debug_list_watches(session_id="nonexistent")
+    async def test_watch_list_not_found(self, session_manager):
+        """Test debug_watch list with non-existent session."""
+        result = await debug_watch(session_id="nonexistent", action="list")
 
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_watch_invalid_action(self, session_manager, tmp_path):
+        """Test debug_watch with invalid action."""
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        result = await debug_watch(session_id=session_id, action="invalid")
+
+        assert "error" in result
+        assert result["code"] == "INVALID_ACTION"
 
 
 class TestOutputTools:
@@ -430,24 +448,36 @@ class TestExecutionToolsNotFound:
 
     @pytest.mark.asyncio
     async def test_step_over_not_found(self, session_manager):
-        """Test debug_step_over with non-existent session."""
-        result = await debug_step_over(session_id="nonexistent")
+        """Test debug_step with mode='over' and non-existent session."""
+        result = await debug_step(session_id="nonexistent", mode="over")
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
 
     @pytest.mark.asyncio
     async def test_step_into_not_found(self, session_manager):
-        """Test debug_step_into with non-existent session."""
-        result = await debug_step_into(session_id="nonexistent")
+        """Test debug_step with mode='into' and non-existent session."""
+        result = await debug_step(session_id="nonexistent", mode="into")
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
 
     @pytest.mark.asyncio
     async def test_step_out_not_found(self, session_manager):
-        """Test debug_step_out with non-existent session."""
-        result = await debug_step_out(session_id="nonexistent")
+        """Test debug_step with mode='out' and non-existent session."""
+        result = await debug_step(session_id="nonexistent", mode="out")
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_step_invalid_mode(self, session_manager, tmp_path):
+        """Test debug_step with invalid mode."""
+        # Create a valid session to test mode validation
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        result = await debug_step(session_id=session_id, mode="invalid")
+        assert "error" in result
+        assert "Invalid mode" in result["error"]
+        assert result["code"] == "INVALID_MODE"
 
     @pytest.mark.asyncio
     async def test_pause_not_found(self, session_manager):

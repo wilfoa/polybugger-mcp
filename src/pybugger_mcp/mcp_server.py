@@ -62,25 +62,7 @@ async def lifespan(app: FastMCP):  # type: ignore[no-untyped-def]
 # Create the MCP server
 mcp = FastMCP(
     name="python-debugger",
-    instructions="""Python Debug Server - Debug Python code interactively.
-
-Use these tools to:
-1. Create a debug session for your project
-2. Set breakpoints on specific lines
-3. Launch the program
-4. When execution stops, inspect variables and evaluate expressions
-5. Step through code or continue execution
-6. Use watch expressions to track values across steps
-
-Typical workflow:
-1. debug_create_session - Create session for your project
-2. debug_set_breakpoints - Set breakpoints where you want to stop
-3. debug_launch - Start the program
-4. debug_poll_events - Wait for stopped event
-5. debug_get_stacktrace, debug_get_variables - Inspect state
-6. debug_evaluate - Test expressions
-7. debug_step_over/into/out or debug_continue - Resume execution
-""",
+    instructions="""Python debugger. Workflow: create_session -> set_breakpoints -> launch -> poll_events -> get_stacktrace/variables/evaluate -> step/continue. Use watches to track expressions.""",
     lifespan=lifespan,
 )
 
@@ -103,15 +85,12 @@ async def debug_create_session(
     name: str | None = None,
     timeout_minutes: int = 60,
 ) -> dict[str, Any]:
-    """Create a new debug session for a project.
+    """Create a debug session. Returns session_id for other operations.
 
     Args:
-        project_root: Absolute path to the project root directory
-        name: Optional friendly name for the session
-        timeout_minutes: Session timeout in minutes (default 60)
-
-    Returns:
-        Session information including session_id needed for other operations
+        project_root: Project root path
+        name: Session name (optional)
+        timeout_minutes: Timeout (default 60)
     """
     manager = _get_manager()
     try:
@@ -134,11 +113,7 @@ async def debug_create_session(
 
 @mcp.tool()
 async def debug_list_sessions() -> dict[str, Any]:
-    """List all active debug sessions.
-
-    Returns:
-        List of active sessions with their current state
-    """
+    """List all active debug sessions."""
     manager = _get_manager()
     sessions = await manager.list_sessions()
     return {
@@ -158,14 +133,7 @@ async def debug_list_sessions() -> dict[str, Any]:
 
 @mcp.tool()
 async def debug_get_session(session_id: str) -> dict[str, Any]:
-    """Get detailed information about a debug session.
-
-    Args:
-        session_id: The session ID returned from debug_create_session
-
-    Returns:
-        Detailed session state including stop reason and location
-    """
+    """Get session state, stop reason, and location."""
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
@@ -184,14 +152,7 @@ async def debug_get_session(session_id: str) -> dict[str, Any]:
 
 @mcp.tool()
 async def debug_terminate_session(session_id: str) -> dict[str, Any]:
-    """Terminate a debug session and clean up resources.
-
-    Args:
-        session_id: The session ID to terminate
-
-    Returns:
-        Confirmation of termination
-    """
+    """Terminate session and clean up."""
     manager = _get_manager()
     try:
         await manager.terminate_session(session_id)
@@ -212,17 +173,13 @@ async def debug_set_breakpoints(
     lines: list[int],
     conditions: list[str | None] | None = None,
 ) -> dict[str, Any]:
-    """Set breakpoints in a source file.
+    """Set breakpoints in a file.
 
     Args:
-        session_id: The debug session ID
-        file_path: Absolute path to the source file
-        lines: List of line numbers to set breakpoints on
-        conditions: Optional list of conditions (same length as lines)
-                   Use None for unconditional breakpoints
-
-    Returns:
-        List of verified breakpoints with their actual locations
+        session_id: Session ID
+        file_path: Source file path
+        lines: Line numbers
+        conditions: Optional conditions per line
     """
     manager = _get_manager()
     try:
@@ -258,14 +215,7 @@ async def debug_set_breakpoints(
 
 @mcp.tool()
 async def debug_get_breakpoints(session_id: str) -> dict[str, Any]:
-    """Get all breakpoints for a session.
-
-    Args:
-        session_id: The debug session ID
-
-    Returns:
-        All breakpoints organized by file
-    """
+    """Get all breakpoints organized by file."""
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
@@ -284,14 +234,11 @@ async def debug_clear_breakpoints(
     session_id: str,
     file_path: str | None = None,
 ) -> dict[str, Any]:
-    """Clear breakpoints from a file or all files.
+    """Clear breakpoints from file or all files.
 
     Args:
-        session_id: The debug session ID
-        file_path: Path to clear breakpoints from (None = clear all)
-
-    Returns:
-        Confirmation of cleared breakpoints
+        session_id: Session ID
+        file_path: File path (None = all files)
     """
     manager = _get_manager()
     try:
@@ -324,20 +271,17 @@ async def debug_launch(
     stop_on_entry: bool = False,
     stop_on_exception: bool = True,
 ) -> dict[str, Any]:
-    """Launch a Python program for debugging.
+    """Launch program for debugging. Use program OR module.
 
     Args:
-        session_id: The debug session ID
-        program: Path to Python script to run (use this OR module)
-        module: Python module to run with -m (use this OR program)
-        args: Command-line arguments to pass to the program
-        cwd: Working directory for the program
-        env: Additional environment variables
-        stop_on_entry: Stop at first line of code
-        stop_on_exception: Stop on uncaught exceptions
-
-    Returns:
-        Launch status - poll for events to detect when stopped
+        session_id: Session ID
+        program: Script path
+        module: Module to run with -m
+        args: Arguments
+        cwd: Working directory
+        env: Environment variables
+        stop_on_entry: Stop at first line
+        stop_on_exception: Stop on exceptions
     """
     manager = _get_manager()
     try:
@@ -380,15 +324,7 @@ async def debug_continue(
     session_id: str,
     thread_id: int | None = None,
 ) -> dict[str, Any]:
-    """Continue execution until next breakpoint or program end.
-
-    Args:
-        session_id: The debug session ID
-        thread_id: Thread to continue (uses current thread if not specified)
-
-    Returns:
-        Execution status
-    """
+    """Continue until next breakpoint or end."""
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
@@ -401,74 +337,35 @@ async def debug_continue(
 
 
 @mcp.tool()
-async def debug_step_over(
+async def debug_step(
     session_id: str,
+    mode: str,
     thread_id: int | None = None,
 ) -> dict[str, Any]:
-    """Step over to the next line (don't enter functions).
+    """Step execution: over (next line), into (enter function), out (exit function).
 
     Args:
-        session_id: The debug session ID
-        thread_id: Thread to step (uses current thread if not specified)
-
-    Returns:
-        Step status - poll events for stopped notification
+        session_id: Session ID
+        mode: "over", "into", or "out"
+        thread_id: Thread ID (default: current)
     """
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
-        await session.step_over(thread_id)
-        return {"status": "stepping", "action": "step_over"}
-    except SessionNotFoundError:
-        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
-    except InvalidSessionStateError as e:
-        return {"error": str(e), "code": "INVALID_STATE"}
 
+        if mode == "over":
+            await session.step_over(thread_id)
+        elif mode == "into":
+            await session.step_into(thread_id)
+        elif mode == "out":
+            await session.step_out(thread_id)
+        else:
+            return {
+                "error": f"Invalid mode: {mode}. Use 'over', 'into', or 'out'",
+                "code": "INVALID_MODE",
+            }
 
-@mcp.tool()
-async def debug_step_into(
-    session_id: str,
-    thread_id: int | None = None,
-) -> dict[str, Any]:
-    """Step into the next function call.
-
-    Args:
-        session_id: The debug session ID
-        thread_id: Thread to step (uses current thread if not specified)
-
-    Returns:
-        Step status - poll events for stopped notification
-    """
-    manager = _get_manager()
-    try:
-        session = await manager.get_session(session_id)
-        await session.step_into(thread_id)
-        return {"status": "stepping", "action": "step_into"}
-    except SessionNotFoundError:
-        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
-    except InvalidSessionStateError as e:
-        return {"error": str(e), "code": "INVALID_STATE"}
-
-
-@mcp.tool()
-async def debug_step_out(
-    session_id: str,
-    thread_id: int | None = None,
-) -> dict[str, Any]:
-    """Step out of the current function.
-
-    Args:
-        session_id: The debug session ID
-        thread_id: Thread to step (uses current thread if not specified)
-
-    Returns:
-        Step status - poll events for stopped notification
-    """
-    manager = _get_manager()
-    try:
-        session = await manager.get_session(session_id)
-        await session.step_out(thread_id)
-        return {"status": "stepping", "action": "step_out"}
+        return {"status": "stepping", "mode": mode}
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
     except InvalidSessionStateError as e:
@@ -480,15 +377,7 @@ async def debug_pause(
     session_id: str,
     thread_id: int | None = None,
 ) -> dict[str, Any]:
-    """Pause a running program.
-
-    Args:
-        session_id: The debug session ID
-        thread_id: Thread to pause (uses current thread if not specified)
-
-    Returns:
-        Pause status
-    """
+    """Pause a running program."""
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
@@ -510,19 +399,15 @@ async def debug_get_stacktrace(
     session_id: str,
     thread_id: int | None = None,
     max_frames: int = 20,
-    format: str = "json",
+    format: str = "tui",
 ) -> dict[str, Any]:
-    """Get the call stack when paused.
+    """Get call stack frames.
 
     Args:
-        session_id: The debug session ID
-        thread_id: Thread to get stack for (uses current thread if not specified)
-        max_frames: Maximum number of frames to return
-        format: Output format - "json" (structured data) or "tui" (rich terminal)
-
-    Returns:
-        Stack frames with file, line, and function information.
-        If format="tui", includes formatted tables and call chain diagram.
+        session_id: Session ID
+        thread_id: Thread ID (default: current)
+        max_frames: Max frames (default 20)
+        format: "json" or "tui"
     """
     manager = _get_manager()
     try:
@@ -559,18 +444,14 @@ async def debug_get_stacktrace(
 async def debug_get_scopes(
     session_id: str,
     frame_id: int,
-    format: str = "json",
+    format: str = "tui",
 ) -> dict[str, Any]:
-    """Get variable scopes (locals, globals) for a stack frame.
+    """Get scopes (locals, globals) for a frame.
 
     Args:
-        session_id: The debug session ID
-        frame_id: Frame ID from debug_get_stacktrace
-        format: Output format - "json" (structured data) or "tui" (rich terminal)
-
-    Returns:
-        List of scopes with their variables_reference for fetching variables.
-        If format="tui", includes formatted table.
+        session_id: Session ID
+        frame_id: Frame ID from stacktrace
+        format: "json" or "tui"
     """
     manager = _get_manager()
     try:
@@ -604,19 +485,15 @@ async def debug_get_variables(
     session_id: str,
     variables_reference: int,
     max_count: int = 100,
-    format: str = "json",
+    format: str = "tui",
 ) -> dict[str, Any]:
-    """Get variables for a scope or compound variable.
+    """Get variables from a scope or compound variable.
 
     Args:
-        session_id: The debug session ID
-        variables_reference: Reference from debug_get_scopes or nested variable
-        max_count: Maximum variables to return
-        format: Output format - "json" (structured data) or "tui" (rich terminal)
-
-    Returns:
-        List of variables with names, values, and types.
-        If format="tui", includes formatted table.
+        session_id: Session ID
+        variables_reference: Ref from scopes or nested variable
+        max_count: Max variables (default 100)
+        format: "json" or "tui"
     """
     manager = _get_manager()
     try:
@@ -653,15 +530,12 @@ async def debug_evaluate(
     expression: str,
     frame_id: int | None = None,
 ) -> dict[str, Any]:
-    """Evaluate a Python expression in the current debug context.
+    """Evaluate a Python expression.
 
     Args:
-        session_id: The debug session ID
-        expression: Python expression to evaluate
-        frame_id: Stack frame to evaluate in (uses topmost if not specified)
-
-    Returns:
-        Expression result with value and type
+        session_id: Session ID
+        expression: Expression to evaluate
+        frame_id: Frame ID (default: topmost)
     """
     manager = _get_manager()
     try:
@@ -686,52 +560,19 @@ async def debug_inspect_variable(
     frame_id: int | None = None,
     max_preview_rows: int = 5,
     include_statistics: bool = True,
-    format: str = "json",
+    format: str = "tui",
 ) -> dict[str, Any]:
-    """Inspect a variable with smart type-aware metadata and preview.
-
-    Provides detailed inspection of pandas DataFrames, NumPy arrays,
-    dicts, lists, and other Python objects. Returns structured metadata
-    appropriate for the detected type in a single call.
+    """Smart inspect DataFrames, arrays, dicts, lists with type-aware metadata.
 
     Args:
-        session_id: The debug session ID
-        variable_name: Name of the variable to inspect (must be in scope)
-        frame_id: Stack frame to inspect in (uses topmost if not specified)
-        max_preview_rows: Maximum rows/items in preview (default 5, max 100)
-        include_statistics: Include statistical summary for numeric data
-        format: Output format - "json" (default) or "tui" for rich terminal
+        session_id: Session ID
+        variable_name: Variable to inspect
+        frame_id: Frame ID (default: topmost)
+        max_preview_rows: Preview limit (default 5, max 100)
+        include_statistics: Include numeric stats
+        format: "json" or "tui"
 
-    Returns:
-        Structured inspection result with:
-        - name: Variable name
-        - type: Display type (e.g., "DataFrame", "ndarray", "dict")
-        - detected_type: Category ("dataframe", "series", "ndarray", etc.)
-        - structure: Type-specific metadata (shape, columns, dtypes, etc.)
-        - preview: Sample data (head rows, key-value pairs, etc.)
-        - statistics: Numerical stats (for numeric types, if requested)
-        - summary: Human-readable one-line summary
-        - warnings: Any warnings (large size, NaN values, etc.)
-        - formatted: ASCII visualization (if format="tui")
-
-    Example:
-        >>> result = debug_inspect_variable(session_id, "df")
-        >>> result
-        {
-            "name": "df",
-            "type": "DataFrame",
-            "detected_type": "dataframe",
-            "structure": {
-                "shape": [1000, 5],
-                "columns": ["id", "name", "value", "date", "status"],
-                "dtypes": {"id": "int64", "name": "object", ...},
-                "memory_bytes": 80000
-            },
-            "preview": {
-                "head": [{"id": 1, "name": "Alice", ...}, ...]
-            },
-            "summary": "DataFrame with 1000 rows x 5 columns, 78.1 KB"
-        }
+    Returns: name, type, detected_type, structure, preview, statistics, summary, warnings
     """
     from pybugger_mcp.models.inspection import InspectionOptions
 
@@ -793,67 +634,18 @@ async def debug_get_call_chain(
     thread_id: int | None = None,
     include_source_context: bool = True,
     context_lines: int = 2,
-    format: str = "json",
+    format: str = "tui",
 ) -> dict[str, Any]:
-    """Get the call chain leading to current location with source context.
-
-    Returns the complete call hierarchy showing how execution arrived at
-    the current location, with optional source context for each frame.
+    """Get call stack with source context showing path to current location.
 
     Args:
-        session_id: The debug session ID
-        thread_id: Thread to get call chain for (uses current if not specified)
-        include_source_context: Include surrounding source lines (default True)
-        context_lines: Number of lines before/after each frame (default 2)
-        format: Output format - "json" (default) or "tui" for rich terminal
+        session_id: Session ID
+        thread_id: Thread ID (default: current)
+        include_source_context: Include surrounding lines
+        context_lines: Lines before/after (default 2)
+        format: "json" or "tui"
 
-    Returns:
-        Call chain with:
-        - call_chain: List of frames from current (depth 0) to entry point
-            Each frame contains:
-            - depth: Distance from current frame (0 = current)
-            - frame_id: DAP frame ID for further inspection
-            - function: Function name
-            - file: Source file path
-            - line: Line number
-            - source: Current line content (if include_source_context)
-            - context: Before/after lines (if include_source_context)
-            - call_expression: The call that led here (if identifiable)
-        - total_frames: Number of frames in call chain
-        - current_function: Name of the current (paused) function
-        - entry_point: Name of the entry point function
-        - formatted: ASCII visualization (if format="tui")
-
-    Example:
-        >>> result = debug_get_call_chain(session_id)
-        >>> result
-        {
-            "call_chain": [
-                {
-                    "depth": 0,
-                    "function": "calculate_total",
-                    "file": "/app/billing.py",
-                    "line": 45,
-                    "source": "        total = sum(items)",
-                    "context": {
-                        "before": ["    def calculate_total(self, items):"],
-                        "after": ["        return total"]
-                    }
-                },
-                {
-                    "depth": 1,
-                    "function": "process_order",
-                    "file": "/app/orders.py",
-                    "line": 123,
-                    "source": "    total = billing.calculate_total(items)",
-                    "call_expression": "billing.calculate_total(items)"
-                },
-                ...
-            ],
-            "total_frames": 3,
-            "current_function": "calculate_total",
-            "entry_point": "main"
-        }
+    Returns: call_chain (frames with depth, function, file, line, source, context), total_frames
     """
     manager = _get_manager()
     try:
@@ -894,65 +686,39 @@ async def debug_get_call_chain(
 
 
 @mcp.tool()
-async def debug_add_watch(
+async def debug_watch(
     session_id: str,
-    expression: str,
+    action: str,
+    expression: str | None = None,
 ) -> dict[str, Any]:
-    """Add a watch expression to track across debug steps.
+    """Manage watch expressions: add, remove, or list.
 
     Args:
-        session_id: The debug session ID
-        expression: Python expression to watch
-
-    Returns:
-        Updated list of watch expressions
+        session_id: Session ID
+        action: "add", "remove", or "list"
+        expression: Expression (required for add/remove)
     """
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
-        watches = session.add_watch(expression)
+
+        if action == "add":
+            if not expression:
+                return {"error": "Expression required for add", "code": "MISSING_EXPRESSION"}
+            watches = session.add_watch(expression)
+        elif action == "remove":
+            if not expression:
+                return {"error": "Expression required for remove", "code": "MISSING_EXPRESSION"}
+            watches = session.remove_watch(expression)
+        elif action == "list":
+            watches = session.list_watches()
+        else:
+            return {
+                "error": f"Invalid action: {action}. Use 'add', 'remove', or 'list'",
+                "code": "INVALID_ACTION",
+            }
+
         return {"watches": watches}
-    except SessionNotFoundError:
-        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
-
-
-@mcp.tool()
-async def debug_remove_watch(
-    session_id: str,
-    expression: str,
-) -> dict[str, Any]:
-    """Remove a watch expression.
-
-    Args:
-        session_id: The debug session ID
-        expression: Expression to remove
-
-    Returns:
-        Updated list of watch expressions
-    """
-    manager = _get_manager()
-    try:
-        session = await manager.get_session(session_id)
-        watches = session.remove_watch(expression)
-        return {"watches": watches}
-    except SessionNotFoundError:
-        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
-
-
-@mcp.tool()
-async def debug_list_watches(session_id: str) -> dict[str, Any]:
-    """List all watch expressions for a session.
-
-    Args:
-        session_id: The debug session ID
-
-    Returns:
-        List of watch expressions
-    """
-    manager = _get_manager()
-    try:
-        session = await manager.get_session(session_id)
-        return {"watches": session.list_watches()}
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
 
@@ -962,14 +728,11 @@ async def debug_evaluate_watches(
     session_id: str,
     frame_id: int | None = None,
 ) -> dict[str, Any]:
-    """Evaluate all watch expressions.
+    """Evaluate all watch expressions and return results.
 
     Args:
-        session_id: The debug session ID
-        frame_id: Stack frame to evaluate in (uses topmost if not specified)
-
-    Returns:
-        Results for each watch expression
+        session_id: Session ID
+        frame_id: Frame ID (default: topmost)
     """
     manager = _get_manager()
     try:
@@ -1000,16 +763,11 @@ async def debug_poll_events(
     session_id: str,
     timeout_seconds: float = 5.0,
 ) -> dict[str, Any]:
-    """Poll for debug events (stopped, continued, terminated, etc).
-
-    Use this after launching or stepping to wait for the program to stop.
+    """Poll for events (stopped, continued, terminated). Use after launch/step.
 
     Args:
-        session_id: The debug session ID
-        timeout_seconds: How long to wait for events (default 5s)
-
-    Returns:
-        List of events that occurred, or empty if timeout
+        session_id: Session ID
+        timeout_seconds: Wait time (default 5s)
     """
     manager = _get_manager()
     try:
@@ -1036,15 +794,12 @@ async def debug_get_output(
     offset: int = 0,
     limit: int = 100,
 ) -> dict[str, Any]:
-    """Get program output (stdout/stderr).
+    """Get program stdout/stderr output.
 
     Args:
-        session_id: The debug session ID
-        offset: Start from this line number
-        limit: Maximum lines to return
-
-    Returns:
-        Program output lines with category (stdout/stderr)
+        session_id: Session ID
+        offset: Start line
+        limit: Max lines (default 100)
     """
     manager = _get_manager()
     try:
@@ -1074,11 +829,7 @@ async def debug_get_output(
 
 @mcp.tool()
 async def debug_list_recoverable() -> dict[str, Any]:
-    """List sessions that can be recovered from previous server run.
-
-    Returns:
-        List of recoverable sessions with their saved state
-    """
+    """List recoverable sessions from previous server run."""
     manager = _get_manager()
     sessions = await manager.list_recoverable_sessions()
     return {
@@ -1100,17 +851,7 @@ async def debug_list_recoverable() -> dict[str, Any]:
 
 @mcp.tool()
 async def debug_recover_session(session_id: str) -> dict[str, Any]:
-    """Recover a session from previous server run.
-
-    This restores breakpoints and watch expressions but requires
-    launching the program again.
-
-    Args:
-        session_id: ID of the recoverable session
-
-    Returns:
-        Recovered session information
-    """
+    """Recover session (restores breakpoints/watches, requires re-launch)."""
     manager = _get_manager()
     try:
         session = await manager.recover_session(session_id)

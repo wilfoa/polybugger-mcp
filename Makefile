@@ -1,11 +1,14 @@
-.PHONY: help install install-dev clean lint format typecheck test test-unit test-integration test-e2e test-cov run run-mcp build pre-commit pre-commit-install
+.PHONY: help install install-dev clean lint format typecheck test test-unit test-integration test-e2e test-cov run run-mcp build pre-commit pre-commit-install shell lock update
 
 # Default target
 help:
 	@echo "Python Debugger MCP - Available commands:"
 	@echo ""
 	@echo "  install          Install production dependencies"
-	@echo "  install-dev      Install development dependencies"
+	@echo "  install-dev      Install all dependencies (including dev)"
+	@echo "  lock             Update poetry.lock file"
+	@echo "  update           Update dependencies"
+	@echo "  shell            Activate virtual environment"
 	@echo "  clean            Remove build artifacts and caches"
 	@echo ""
 	@echo "  lint             Run ruff linter"
@@ -26,11 +29,20 @@ help:
 
 # Installation
 install:
-	pip install -e .
+	poetry install --only main
 
 install-dev:
-	pip install -e ".[dev]"
-	pre-commit install
+	poetry install
+	poetry run pre-commit install
+
+lock:
+	poetry lock
+
+update:
+	poetry update
+
+shell:
+	poetry shell
 
 # Cleaning
 clean:
@@ -48,45 +60,45 @@ clean:
 
 # Linting and formatting
 lint:
-	ruff check src/ tests/
+	poetry run ruff check src/ tests/
 
 format:
-	ruff format src/ tests/
-	ruff check --fix src/ tests/
+	poetry run ruff format src/ tests/
+	poetry run ruff check --fix src/ tests/
 
 typecheck:
-	mypy src/
+	poetry run mypy src/
 
 # Pre-commit
 pre-commit:
-	pre-commit run --all-files
+	poetry run pre-commit run --all-files
 
 pre-commit-install:
-	pre-commit install
+	poetry run pre-commit install
 
 # Testing
 test:
-	pytest tests/ -v
+	poetry run pytest tests/ -v
 
 test-unit:
-	pytest tests/unit/ -v -m unit
+	poetry run pytest tests/unit/ -v
 
 test-integration:
-	pytest tests/integration/ -v -m integration
+	poetry run pytest tests/integration/ -v
 
 test-e2e:
-	pytest tests/e2e/ -v -m e2e
+	poetry run pytest tests/e2e/ -v
 
 test-cov:
-	pytest tests/ --cov=src/python_debugger_mcp --cov-report=term-missing --cov-report=html
+	poetry run pytest tests/ --cov=src/pybugger_mcp --cov-report=term-missing --cov-report=html
 
 # Running
 run:
-	python -m python_debugger_mcp.main
+	poetry run python -m pybugger_mcp.main
 
 run-mcp:
-	python -m python_debugger_mcp.mcp_server
+	poetry run python -m pybugger_mcp.mcp_server
 
 # Building
 build: clean
-	python -m build
+	poetry build

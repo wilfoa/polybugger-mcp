@@ -10,6 +10,7 @@ class SessionConfig(BaseModel):
 
     project_root: str
     name: str | None = None
+    language: str = Field(default="python", description="Programming language to debug")
     timeout_minutes: int = Field(default=60, ge=1, le=1440)  # Max 24 hours
     recover_from: str | None = None  # Session ID to recover settings from
 

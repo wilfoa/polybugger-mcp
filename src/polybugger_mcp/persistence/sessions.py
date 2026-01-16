@@ -25,6 +25,7 @@ class PersistedSession(BaseModel):
     name: str
     project_root: str
     state: str
+    language: str = "python"  # Programming language for debug adapter
     created_at: datetime
     last_activity: datetime
     breakpoints: dict[str, list[dict[str, Any]]]

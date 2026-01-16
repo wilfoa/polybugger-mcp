@@ -9,7 +9,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from polybugger_mcp.adapters.debugpy_adapter import DebugpyAdapter
+from polybugger_mcp.adapters.base import DebugAdapter
+from polybugger_mcp.adapters.factory import create_adapter
 from polybugger_mcp.config import settings
 from polybugger_mcp.core.events import EventQueue
 from polybugger_mcp.core.exceptions import (
@@ -56,11 +57,13 @@ class Session:
         project_root: Path,
         name: str | None = None,
         timeout_minutes: int = 60,
+        language: str = "python",
     ):
         self.id = session_id
         self.project_root = project_root
         self.name = name or f"session-{session_id[:8]}"
         self.timeout_minutes = timeout_minutes
+        self.language = language
 
         self._state = SessionState.CREATED
         self._state_lock = asyncio.Lock()
@@ -69,7 +72,7 @@ class Session:
         self.last_activity = self.created_at
 
         # Components
-        self.adapter: DebugpyAdapter | None = None
+        self.adapter: DebugAdapter | None = None
         self.output_buffer = OutputBuffer(max_size=settings.output_buffer_max_bytes)
         self.event_queue = EventQueue()
 
@@ -137,8 +140,9 @@ class Session:
         self.last_activity = datetime.now(timezone.utc)
 
     async def initialize_adapter(self) -> None:
-        """Create and initialize the debugpy adapter."""
-        self.adapter = DebugpyAdapter(
+        """Create and initialize the debug adapter for the configured language."""
+        self.adapter = create_adapter(
+            language=self.language,
             session_id=self.id,
             output_callback=self._handle_output,
             event_callback=self._handle_event,
@@ -219,7 +223,7 @@ class Session:
             raise InvalidSessionStateError(self.id, "no adapter", ["initialized"])
 
         tid = thread_id or self.current_thread_id or 1
-        await self.adapter.continue_(tid)
+        await self.adapter.continue_execution(tid)
         await self.transition_to(SessionState.RUNNING)
         self.stop_reason = None
         self.stop_location = None
@@ -267,7 +271,7 @@ class Session:
         """Get all threads."""
         if self.adapter is None:
             return []
-        return await self.adapter.threads()
+        return await self.adapter.get_threads()
 
     async def get_stack_trace(
         self,
@@ -280,13 +284,13 @@ class Session:
             return []
 
         tid = thread_id or self.current_thread_id or 1
-        return await self.adapter.stack_trace(tid, start_frame, levels)
+        return await self.adapter.get_stack_trace(tid, start_frame, levels)
 
     async def get_scopes(self, frame_id: int) -> list[Scope]:
         """Get scopes for a frame."""
         if self.adapter is None:
             return []
-        return await self.adapter.scopes(frame_id)
+        return await self.adapter.get_scopes(frame_id)
 
     async def get_variables(
         self,
@@ -297,7 +301,7 @@ class Session:
         """Get variables for a scope."""
         if self.adapter is None:
             return []
-        return await self.adapter.variables(variables_ref, start, count)
+        return await self.adapter.get_variables(variables_ref, start, count)
 
     async def evaluate(
         self,
@@ -487,7 +491,7 @@ class Session:
         self.touch()
 
         tid = thread_id or self.current_thread_id or 1
-        frames = await self.adapter.stack_trace(tid, start_frame=0, levels=100)
+        frames = await self.adapter.get_stack_trace(tid, start_frame=0, levels=100)
 
         call_chain: list[dict[str, Any]] = []
 
@@ -548,6 +552,7 @@ class Session:
             name=self.name,
             project_root=str(self.project_root),
             state=self._state.value,
+            language=self.language,
             created_at=self.created_at,
             last_activity=self.last_activity,
             breakpoints={
@@ -575,6 +580,7 @@ class Session:
             session_id=data.id,
             project_root=Path(data.project_root),
             name=data.name,
+            language=data.language,
         )
 
         # Restore breakpoints
@@ -692,6 +698,7 @@ class SessionManager:
                 project_root=Path(config.project_root),
                 name=config.name,
                 timeout_minutes=config.timeout_minutes,
+                language=config.language,
             )
 
             # Initialize adapter

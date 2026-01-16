@@ -1,0 +1,45 @@
+# Dockerfile for LLM-based E2E tests
+# Tests that an LLM can successfully use our debugging tools
+#
+# Build:
+#   docker build -f Dockerfile.llm-test -t polybugger-mcp-llm-test .
+#
+# Run (requires ANTHROPIC_API_KEY):
+#   docker run --rm -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY polybugger-mcp-llm-test
+#
+# Run with SYS_PTRACE for debugging (recommended):
+#   docker run --rm --cap-add=SYS_PTRACE -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY polybugger-mcp-llm-test
+
+FROM python:3.11-slim-bookworm
+
+# Install minimal system dependencies for debugging
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry for Python dependency management
+RUN pip install poetry
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY pyproject.toml poetry.lock ./
+COPY README.md ./
+COPY src/ ./src/
+COPY tests/ ./tests/
+
+# Install Python dependencies (includes anthropic in dev deps)
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
+
+# Verify installations
+RUN echo "=== Tool Verification ===" \
+    && echo "Python:" && python --version \
+    && echo "Anthropic SDK:" && python -c "import anthropic; print(anthropic.__version__)" \
+    && echo "debugpy:" && python -c "import debugpy; print(debugpy.__version__)"
+
+# Default command: run LLM E2E tests
+# Note: ANTHROPIC_API_KEY must be set as environment variable
+CMD ["pytest", "tests/e2e/test_llm_debugging.py", "-v", "--tb=short", "-s"]

@@ -61,8 +61,8 @@ async def lifespan(app: FastMCP):  # type: ignore[no-untyped-def]
 
 # Create the MCP server
 mcp = FastMCP(
-    name="python-debugger",
-    instructions="""Python debugger. Workflow: create_session -> set_breakpoints -> launch -> poll_events -> get_stacktrace/variables/evaluate -> step/continue. Use watches to track expressions.""",
+    name="polybugger",
+    instructions="""Multi-language debugger supporting Python, JavaScript/TypeScript, Go, and Rust. Workflow: list_languages (optional) -> create_session(language) -> set_breakpoints -> launch -> poll_events -> get_stacktrace/variables/evaluate -> step/continue. Use watches to track expressions.""",
     lifespan=lifespan,
 )
 
@@ -82,6 +82,7 @@ def _get_manager() -> SessionManager:
 @mcp.tool()
 async def debug_create_session(
     project_root: str,
+    language: str = "python",
     name: str | None = None,
     timeout_minutes: int = 60,
 ) -> dict[str, Any]:
@@ -89,13 +90,27 @@ async def debug_create_session(
 
     Args:
         project_root: Project root path
+        language: Programming language (python, javascript, go, rust)
         name: Session name (optional)
         timeout_minutes: Timeout (default 60)
     """
+    from polybugger_mcp.adapters.factory import is_language_supported
+
     manager = _get_manager()
     try:
+        # Validate language
+        if not is_language_supported(language):
+            from polybugger_mcp.adapters.factory import get_supported_languages
+
+            return {
+                "error": f"Unsupported language: {language}",
+                "code": "UNSUPPORTED_LANGUAGE",
+                "supported": get_supported_languages(),
+            }
+
         config = SessionConfig(
             project_root=project_root,
+            language=language,
             name=name,
             timeout_minutes=timeout_minutes,
         )
@@ -104,11 +119,24 @@ async def debug_create_session(
             "session_id": session.id,
             "name": session.name,
             "project_root": str(session.project_root),
+            "language": session.language,
             "state": session.state.value,
-            "message": "Session created. Set breakpoints and then launch.",
+            "message": f"Session created for {language}. Set breakpoints and then launch.",
         }
     except SessionLimitError as e:
         return {"error": str(e), "code": "SESSION_LIMIT"}
+
+
+@mcp.tool()
+async def debug_list_languages() -> dict[str, Any]:
+    """List supported programming languages for debugging."""
+    from polybugger_mcp.adapters.factory import get_supported_languages
+
+    return {
+        "languages": get_supported_languages(),
+        "default": "python",
+        "message": "Use language parameter in debug_create_session to specify language.",
+    }
 
 
 @mcp.tool()
@@ -122,6 +150,7 @@ async def debug_list_sessions() -> dict[str, Any]:
                 "session_id": s.id,
                 "name": s.name,
                 "project_root": str(s.project_root),
+                "language": s.language,
                 "state": s.state.value,
                 "stop_reason": s.stop_reason,
             }
@@ -141,6 +170,7 @@ async def debug_get_session(session_id: str) -> dict[str, Any]:
             "session_id": session.id,
             "name": session.name,
             "project_root": str(session.project_root),
+            "language": session.language,
             "state": session.state.value,
             "current_thread_id": session.current_thread_id,
             "stop_reason": session.stop_reason,

@@ -1,0 +1,108 @@
+name: LLM E2E Tests
+
+on:
+  # Run on push to main (after PR merge)
+  push:
+    branches: [main, master]
+  # Allow manual trigger
+  workflow_dispatch:
+  # Run weekly to catch regressions
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+
+# Only run one at a time to avoid rate limiting
+concurrency:
+  group: llm-tests
+  cancel-in-progress: false
+
+jobs:
+  llm-e2e-tests:
+    name: LLM Debugging Tests
+    runs-on: ubuntu-latest
+    # Only run if API key is available
+    if: ${{ vars.ANTHROPIC_API_KEY != '' || secrets.ANTHROPIC_API_KEY != '' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build LLM test image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.llm-test
+          push: false
+          load: true
+          tags: polybugger-mcp-llm-test:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run LLM E2E tests
+        run: |
+          docker run --rm \
+            --cap-add=SYS_PTRACE \
+            --security-opt seccomp=unconfined \
+            -e ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+            polybugger-mcp-llm-test:latest
+        timeout-minutes: 10
+
+  # Separate job for testing without Docker (faster for development)
+  llm-e2e-tests-native:
+    name: LLM Tests (Native)
+    runs-on: ubuntu-latest
+    if: ${{ vars.ANTHROPIC_API_KEY != '' || secrets.ANTHROPIC_API_KEY != '' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-polybugger-llm-${{ runner.os }}-3.11-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+          poetry install --no-interaction
+          poetry run pip install anthropic
+
+      - name: Run LLM E2E tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          poetry run pytest tests/e2e/test_llm_debugging.py -v --tb=short -s
+        timeout-minutes: 10
+
+  # Report results
+  report:
+    name: Report Results
+    runs-on: ubuntu-latest
+    needs: [llm-e2e-tests, llm-e2e-tests-native]
+    if: always()
+    
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.llm-e2e-tests.result }}" == "success" ]] || [[ "${{ needs.llm-e2e-tests-native.result }}" == "success" ]]; then
+            echo "✅ LLM E2E tests passed!"
+          elif [[ "${{ needs.llm-e2e-tests.result }}" == "skipped" ]] && [[ "${{ needs.llm-e2e-tests-native.result }}" == "skipped" ]]; then
+            echo "⏭️ LLM E2E tests skipped (no API key)"
+          else
+            echo "❌ LLM E2E tests failed"
+            exit 1
+          fi

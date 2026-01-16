@@ -202,14 +202,19 @@ async def debug_set_breakpoints(
     file_path: str,
     lines: list[int],
     conditions: list[str | None] | None = None,
+    hit_conditions: list[str | None] | None = None,
+    log_messages: list[str | None] | None = None,
 ) -> dict[str, Any]:
-    """Set breakpoints in a file.
+    """Set breakpoints in a file with optional conditions, hit counts, and log messages.
 
     Args:
         session_id: Session ID
         file_path: Source file path
         lines: Line numbers
-        conditions: Optional conditions per line
+        conditions: Optional conditions per line (e.g., "x > 5", "len(items) == 0")
+        hit_conditions: Optional hit count conditions per line (e.g., ">=5", "==10", "%3==0")
+        log_messages: Optional log messages per line (logpoints). Can include {expressions}.
+                      Example: "Value is {x}, length is {len(items)}"
     """
     manager = _get_manager()
     try:
@@ -219,15 +224,29 @@ async def debug_set_breakpoints(
         breakpoints = []
         for i, line in enumerate(lines):
             condition = None
+            hit_condition = None
+            log_message = None
             if conditions and i < len(conditions):
                 condition = conditions[i]
-            breakpoints.append(SourceBreakpoint(line=line, condition=condition))
+            if hit_conditions and i < len(hit_conditions):
+                hit_condition = hit_conditions[i]
+            if log_messages and i < len(log_messages):
+                log_message = log_messages[i]
+            breakpoints.append(
+                SourceBreakpoint(
+                    line=line,
+                    condition=condition,
+                    hit_condition=hit_condition,
+                    log_message=log_message,
+                )
+            )
 
         result = await session.set_breakpoints(file_path, breakpoints)
 
         # Save to persistence
         await manager.save_breakpoints(session)
 
+        # Return breakpoint info including conditions
         return {
             "file": file_path,
             "breakpoints": [
@@ -235,8 +254,11 @@ async def debug_set_breakpoints(
                     "line": bp.line,
                     "verified": bp.verified,
                     "message": bp.message,
+                    "condition": breakpoints[i].condition,
+                    "hit_condition": breakpoints[i].hit_condition,
+                    "log_message": breakpoints[i].log_message,
                 }
-                for bp in result
+                for i, bp in enumerate(result)
             ],
         }
     except SessionNotFoundError:
@@ -245,13 +267,21 @@ async def debug_set_breakpoints(
 
 @mcp.tool()
 async def debug_get_breakpoints(session_id: str) -> dict[str, Any]:
-    """Get all breakpoints organized by file."""
+    """Get all breakpoints organized by file, including conditions, hit counts, and log messages."""
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
         return {
             "files": {
-                path: [{"line": bp.line, "condition": bp.condition} for bp in bps]
+                path: [
+                    {
+                        "line": bp.line,
+                        "condition": bp.condition,
+                        "hit_condition": bp.hit_condition,
+                        "log_message": bp.log_message,
+                    }
+                    for bp in bps
+                ]
                 for path, bps in session._breakpoints.items()
             }
         }

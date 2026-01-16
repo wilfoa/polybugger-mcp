@@ -77,7 +77,7 @@ DEBUG_TOOLS = [
     },
     {
         "name": "debug_set_breakpoints",
-        "description": "Set breakpoints in a file.",
+        "description": "Set breakpoints in a file with optional conditions, hit counts, and log messages.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -87,6 +87,21 @@ DEBUG_TOOLS = [
                     "type": "array",
                     "items": {"type": "integer"},
                     "description": "Line numbers",
+                },
+                "conditions": {
+                    "type": "array",
+                    "items": {"type": ["string", "null"]},
+                    "description": "Optional conditions per line (e.g., 'x > 5', 'len(items) == 0')",
+                },
+                "hit_conditions": {
+                    "type": "array",
+                    "items": {"type": ["string", "null"]},
+                    "description": "Optional hit count conditions per line (e.g., '>=5', '==10', '%3==0')",
+                },
+                "log_messages": {
+                    "type": "array",
+                    "items": {"type": ["string", "null"]},
+                    "description": "Optional log messages per line (logpoints). Can include {expressions}.",
                 },
             },
             "required": ["session_id", "file_path", "lines"],
@@ -286,9 +301,34 @@ class DebugToolExecutor:
 
         if tool_name == "debug_set_breakpoints":
             session = await self.manager.get_session(tool_input["session_id"])
-            breakpoints = [SourceBreakpoint(line=line) for line in tool_input["lines"]]
+            lines = tool_input["lines"]
+            conditions = tool_input.get("conditions", [])
+            hit_conditions = tool_input.get("hit_conditions", [])
+            log_messages = tool_input.get("log_messages", [])
+
+            breakpoints = []
+            for i, line in enumerate(lines):
+                bp = SourceBreakpoint(
+                    line=line,
+                    condition=conditions[i] if i < len(conditions) else None,
+                    hit_condition=hit_conditions[i] if i < len(hit_conditions) else None,
+                    log_message=log_messages[i] if i < len(log_messages) else None,
+                )
+                breakpoints.append(bp)
+
             result = await session.set_breakpoints(tool_input["file_path"], breakpoints)
-            return {"breakpoints": [{"line": bp.line, "verified": bp.verified} for bp in result]}
+            return {
+                "breakpoints": [
+                    {
+                        "line": bp.line,
+                        "verified": bp.verified,
+                        "condition": breakpoints[i].condition,
+                        "hit_condition": breakpoints[i].hit_condition,
+                        "log_message": breakpoints[i].log_message,
+                    }
+                    for i, bp in enumerate(result)
+                ]
+            }
 
         if tool_name == "debug_launch":
             session = await self.manager.get_session(tool_input["session_id"])

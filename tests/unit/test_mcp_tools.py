@@ -258,6 +258,114 @@ class TestBreakpointTools:
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
 
+    @pytest.mark.asyncio
+    async def test_set_breakpoints_with_hit_conditions(self, session_manager, tmp_path):
+        """Test debug_set_breakpoints with hit conditions."""
+        # Create test file
+        test_file = tmp_path / "test.py"
+        test_file.write_text("for i in range(10):\n    x = i\n    y = i * 2\n")
+
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        result = await debug_set_breakpoints(
+            session_id=session_id,
+            file_path=str(test_file),
+            lines=[2, 3],
+            hit_conditions=[">=5", "==3"],
+        )
+
+        assert result["file"] == str(test_file)
+        assert len(result["breakpoints"]) == 2
+        assert result["breakpoints"][0]["hit_condition"] == ">=5"
+        assert result["breakpoints"][1]["hit_condition"] == "==3"
+
+    @pytest.mark.asyncio
+    async def test_set_breakpoints_with_log_messages(self, session_manager, tmp_path):
+        """Test debug_set_breakpoints with log messages (logpoints)."""
+        # Create test file
+        test_file = tmp_path / "test.py"
+        test_file.write_text("x = 1\ny = 2\nz = x + y\n")
+
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        result = await debug_set_breakpoints(
+            session_id=session_id,
+            file_path=str(test_file),
+            lines=[2, 3],
+            log_messages=["Value of x: {x}", "Sum is {z}"],
+        )
+
+        assert result["file"] == str(test_file)
+        assert len(result["breakpoints"]) == 2
+        assert result["breakpoints"][0]["log_message"] == "Value of x: {x}"
+        assert result["breakpoints"][1]["log_message"] == "Sum is {z}"
+
+    @pytest.mark.asyncio
+    async def test_set_breakpoints_with_all_options(self, session_manager, tmp_path):
+        """Test debug_set_breakpoints with conditions, hit conditions, and log messages."""
+        # Create test file
+        test_file = tmp_path / "test.py"
+        test_file.write_text("for i in range(10):\n    x = i\n    y = i * 2\n")
+
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        result = await debug_set_breakpoints(
+            session_id=session_id,
+            file_path=str(test_file),
+            lines=[2, 3],
+            conditions=["i > 3", None],
+            hit_conditions=[None, "%2==0"],
+            log_messages=[None, "Value: {i}"],
+        )
+
+        assert len(result["breakpoints"]) == 2
+        # First breakpoint: condition only
+        assert result["breakpoints"][0]["condition"] == "i > 3"
+        assert result["breakpoints"][0]["hit_condition"] is None
+        assert result["breakpoints"][0]["log_message"] is None
+        # Second breakpoint: hit_condition and log_message
+        assert result["breakpoints"][1]["condition"] is None
+        assert result["breakpoints"][1]["hit_condition"] == "%2==0"
+        assert result["breakpoints"][1]["log_message"] == "Value: {i}"
+
+    @pytest.mark.asyncio
+    async def test_get_breakpoints_includes_all_properties(self, session_manager, tmp_path):
+        """Test debug_get_breakpoints returns hit_condition and log_message."""
+        test_file = tmp_path / "test.py"
+        test_file.write_text("x = 1\ny = 2\n")
+
+        create_result = await debug_create_session(project_root=str(tmp_path))
+        session_id = create_result["session_id"]
+
+        await debug_set_breakpoints(
+            session_id=session_id,
+            file_path=str(test_file),
+            lines=[1, 2],
+            conditions=["x > 0", None],
+            hit_conditions=[None, ">=3"],
+            log_messages=["Log: {x}", None],
+        )
+
+        result = await debug_get_breakpoints(session_id=session_id)
+
+        assert "files" in result
+        assert str(test_file) in result["files"]
+        breakpoints = result["files"][str(test_file)]
+        assert len(breakpoints) == 2
+        # First breakpoint
+        assert breakpoints[0]["line"] == 1
+        assert breakpoints[0]["condition"] == "x > 0"
+        assert breakpoints[0]["hit_condition"] is None
+        assert breakpoints[0]["log_message"] == "Log: {x}"
+        # Second breakpoint
+        assert breakpoints[1]["line"] == 2
+        assert breakpoints[1]["condition"] is None
+        assert breakpoints[1]["hit_condition"] == ">=3"
+        assert breakpoints[1]["log_message"] is None
+
 
 class TestWatchTools:
     """Tests for watch expression tools."""

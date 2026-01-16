@@ -106,6 +106,7 @@ COPY pyproject.toml poetry.lock ./
 COPY README.md ./
 COPY src/ ./src/
 COPY tests/ ./tests/
+COPY examples/ ./examples/
 
 # Install Python dependencies
 RUN poetry config virtualenvs.create false \

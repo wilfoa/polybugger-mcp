@@ -1,22 +1,22 @@
-# pybugger-mcp
+# polybugger-mcp
 
-[![PyPI version](https://img.shields.io/pypi/v/pybugger-mcp)](https://pypi.org/project/pybugger-mcp/)
+[![PyPI version](https://img.shields.io/pypi/v/polybugger-mcp)](https://pypi.org/project/polybugger-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://github.com/wilfoa/pybugger-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/wilfoa/pybugger-mcp/actions/workflows/tests.yml)
+[![Tests](https://github.com/wilfoa/polybugger-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/wilfoa/polybugger-mcp/actions/workflows/tests.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
 A lightweight, pure-Python MCP server for interactive debugging. Uses debugpy (VS Code's debugger) under the hood for reliable, battle-tested debugging.
 
-[![Install in Cursor](https://img.shields.io/badge/Cursor-Install%20MCP-blue?style=for-the-badge&logo=cursor)](https://cursor.com/install-mcp?name=pybugger&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJweWJ1Z2dlci1tY3AiXX0=)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install%20Server-0098FF?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22pybugger%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22pybugger-mcp%22%5D%7D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install%20MCP-blue?style=for-the-badge&logo=cursor)](https://cursor.com/install-mcp?name=polybugger&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwb2x5YnVnZ2VyLW1jcCJdfQ==)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install%20Server-0098FF?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22polybugger%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22polybugger-mcp%22%5D%7D)
 
 ## Demo
 
-![pybugger-mcp demo](docs/demo.gif)
+![polybugger-mcp demo](docs/demo.gif)
 
-## Why pybugger-mcp?
+## Why polybugger-mcp?
 
-| Feature | pybugger-mcp | Other MCP debuggers |
+| Feature | polybugger-mcp | Other MCP debuggers |
 |---------|--------------|---------------------|
 | **Session Recovery** | Resume debugging after server restart | Not available |
 | **Watch Expressions** | Track values across debug steps | Planned for 2026 |
@@ -43,18 +43,18 @@ A lightweight, pure-Python MCP server for interactive debugging. Uses debugpy (V
 
 **Using uvx (recommended):**
 ```bash
-uvx pybugger-mcp
+uvx polybugger-mcp
 ```
 
 **Using pipx:**
 ```bash
-pipx run pybugger-mcp
+pipx run polybugger-mcp
 ```
 
 **Using pip:**
 ```bash
-pip install pybugger-mcp
-pybugger-mcp
+pip install polybugger-mcp
+polybugger-mcp
 ```
 
 ### MCP Client Configuration
@@ -71,7 +71,7 @@ Add to `~/.cursor/mcp.json`:
   "mcpServers": {
     "python-debugger": {
       "command": "uvx",
-      "args": ["pybugger-mcp"]
+      "args": ["polybugger-mcp"]
     }
   }
 }
@@ -85,7 +85,7 @@ Add to `~/.cursor/mcp.json`:
   "mcpServers": {
     "python-debugger": {
       "command": "python",
-      "args": ["-m", "pybugger_mcp.mcp_server"]
+      "args": ["-m", "polybugger_mcp.mcp_server"]
     }
   }
 }
@@ -99,7 +99,7 @@ Add to `~/.cursor/mcp.json`:
 Use the VS Code CLI:
 
 ```bash
-code --add-mcp '{"name":"python-debugger","command":"uvx","args":["pybugger-mcp"]}'
+code --add-mcp '{"name":"python-debugger","command":"uvx","args":["polybugger-mcp"]}'
 ```
 
 Or add to your MCP settings manually.
@@ -109,7 +109,7 @@ Or add to your MCP settings manually.
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add python-debugger -- uvx pybugger-mcp
+claude mcp add python-debugger -- uvx polybugger-mcp
 ```
 </details>
 
@@ -123,7 +123,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
   "mcpServers": {
     "python-debugger": {
       "command": "uvx",
-      "args": ["pybugger-mcp"]
+      "args": ["polybugger-mcp"]
     }
   }
 }
@@ -140,7 +140,7 @@ Add to `~/.config/opencode/opencode.json`:
   "mcp": {
     "python-debugger": {
       "type": "local",
-      "command": ["uvx", "pybugger-mcp"],
+      "command": ["uvx", "polybugger-mcp"],
       "enabled": true
     }
   }
@@ -158,7 +158,7 @@ Add to your Windsurf MCP config:
   "mcpServers": {
     "python-debugger": {
       "command": "uvx",
-      "args": ["pybugger-mcp"]
+      "args": ["polybugger-mcp"]
     }
   }
 }
@@ -175,7 +175,7 @@ Add to your `cline_mcp_settings.json`:
   "mcpServers": {
     "python-debugger": {
       "command": "uvx",
-      "args": ["pybugger-mcp"],
+      "args": ["polybugger-mcp"],
       "disabled": false
     }
   }
@@ -188,14 +188,14 @@ Add to your `cline_mcp_settings.json`:
 
 Go to Settings > Extensions > Add custom extension:
 - Type: STDIO
-- Command: `uvx pybugger-mcp`
+- Command: `uvx polybugger-mcp`
 </details>
 
 <details>
 <summary><b>Docker</b></summary>
 
 ```bash
-docker run -i --rm ghcr.io/wilfoa/pybugger-mcp
+docker run -i --rm ghcr.io/wilfoa/polybugger-mcp
 ```
 
 Or in your MCP config:
@@ -205,7 +205,7 @@ Or in your MCP config:
   "mcpServers": {
     "python-debugger": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "ghcr.io/wilfoa/pybugger-mcp"]
+      "args": ["run", "-i", "--rm", "ghcr.io/wilfoa/polybugger-mcp"]
     }
   }
 }
@@ -269,7 +269,7 @@ Or in your MCP config:
 
 1. **Install the package:**
    ```bash
-   pip install pybugger-mcp
+   pip install polybugger-mcp
    ```
 
 2. **Configure your MCP client** (see Installation above)
@@ -345,15 +345,15 @@ Environment variables (prefix with `PYBUGGER_MCP_`):
 | `PORT` | `5679` | Server port (for HTTP mode) |
 | `MAX_SESSIONS` | `10` | Maximum concurrent debug sessions |
 | `SESSION_TIMEOUT_SECONDS` | `3600` | Session idle timeout (1 hour) |
-| `DATA_DIR` | `~/.pybugger-mcp` | Data directory for persistence |
+| `DATA_DIR` | `~/.polybugger-mcp` | Data directory for persistence |
 | `LOG_LEVEL` | `INFO` | Logging level |
 
 ## Development
 
 ```bash
 # Clone and setup
-git clone https://github.com/wilfoa/pybugger-mcp.git
-cd pybugger-mcp
+git clone https://github.com/wilfoa/polybugger-mcp.git
+cd polybugger-mcp
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"

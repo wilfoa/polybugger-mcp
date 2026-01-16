@@ -7,9 +7,9 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from pybugger_mcp.core.session import SessionManager
-from pybugger_mcp.main import create_app
-from pybugger_mcp.persistence.breakpoints import BreakpointStore
+from polybugger_mcp.core.session import SessionManager
+from polybugger_mcp.main import create_app
+from polybugger_mcp.persistence.breakpoints import BreakpointStore
 
 
 async def wait_for_event(

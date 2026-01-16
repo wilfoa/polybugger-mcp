@@ -6,14 +6,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pybugger_mcp.models.inspection import (
+from polybugger_mcp.models.inspection import (
     DetectedType,
     InspectionOptions,
     InspectionPreview,
     InspectionResult,
     Statistics,
 )
-from pybugger_mcp.utils.data_inspector import (
+from polybugger_mcp.utils.data_inspector import (
     DataInspector,
     ExpressionTimeoutError,
     get_inspector,

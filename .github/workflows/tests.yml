@@ -43,7 +43,7 @@ jobs:
         run: poetry run pip install pytest-rerunfailures
 
       - name: Run tests
-        run: poetry run pytest tests/ -v --cov=src/pybugger_mcp --cov-report=xml --reruns 2 --reruns-delay 1
+        run: poetry run pytest tests/ -v --cov=src/polybugger_mcp --cov-report=xml --reruns 2 --reruns-delay 1
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

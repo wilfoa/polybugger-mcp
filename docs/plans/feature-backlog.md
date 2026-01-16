@@ -1,4 +1,4 @@
-# pybugger-mcp Feature Backlog
+# polybugger-mcp Feature Backlog
 
 This document contains detailed plans for upcoming features. Each feature needs full grooming (user story, HLD, LLD, test plans) before implementation.
 
@@ -24,7 +24,7 @@ Create a formatting layer that produces rich terminal graphics for debugging inf
 
 ### Proposed Implementation
 
-#### New Module: `src/pybugger_mcp/utils/tui_formatter.py`
+#### New Module: `src/polybugger_mcp/utils/tui_formatter.py`
 
 ```python
 """Terminal UI formatting utilities."""
@@ -141,8 +141,8 @@ When `format="tui"`, include a `formatted` key with the ASCII art:
 
 | File | Changes |
 |------|---------|
-| `src/pybugger_mcp/utils/tui_formatter.py` | New - all formatting logic |
-| `src/pybugger_mcp/mcp_server.py` | Add `format` param to inspection tools |
+| `src/polybugger_mcp/utils/tui_formatter.py` | New - all formatting logic |
+| `src/polybugger_mcp/mcp_server.py` | Add `format` param to inspection tools |
 | `tests/unit/test_tui_formatter.py` | New - unit tests for formatting |
 
 #### Box Drawing Characters Reference
@@ -176,7 +176,7 @@ Enhance variable inspection to detect pandas DataFrames, NumPy arrays, and other
 
 ### Proposed Implementation
 
-#### New Module: `src/pybugger_mcp/utils/data_inspector.py`
+#### New Module: `src/polybugger_mcp/utils/data_inspector.py`
 
 ```python
 """Smart data structure inspection utilities."""
@@ -288,10 +288,10 @@ async def debug_inspect_variable(
 
 | File | Changes |
 |------|---------|
-| `src/pybugger_mcp/utils/data_inspector.py` | New - inspection logic |
-| `src/pybugger_mcp/adapters/debugpy_adapter.py` | Add `inspect_variable()` method |
-| `src/pybugger_mcp/core/session.py` | Add `inspect_variable()` delegation |
-| `src/pybugger_mcp/mcp_server.py` | Add `debug_inspect_variable` tool |
+| `src/polybugger_mcp/utils/data_inspector.py` | New - inspection logic |
+| `src/polybugger_mcp/adapters/debugpy_adapter.py` | Add `inspect_variable()` method |
+| `src/polybugger_mcp/core/session.py` | Add `inspect_variable()` delegation |
+| `src/polybugger_mcp/mcp_server.py` | Add `debug_inspect_variable` tool |
 | `tests/unit/test_data_inspector.py` | New - unit tests |
 | `tests/e2e/test_data_inspection.py` | New - e2e tests with real pandas/numpy |
 
@@ -384,8 +384,8 @@ async def debug_get_call_chain(
 
 | File | Changes |
 |------|---------|
-| `src/pybugger_mcp/mcp_server.py` | Add `debug_get_call_chain` tool |
-| `src/pybugger_mcp/utils/source_reader.py` | New - read source context |
+| `src/polybugger_mcp/mcp_server.py` | Add `debug_get_call_chain` tool |
+| `src/polybugger_mcp/utils/source_reader.py` | New - read source context |
 | `tests/unit/test_call_hierarchy.py` | New - unit tests |
 
 #### Future Enhancement: Static Analysis
@@ -440,7 +440,7 @@ This requires:
 ### Current Codebase Structure
 
 ```
-src/pybugger_mcp/
+src/polybugger_mcp/
 ├── mcp_server.py         # MCP tools defined here with @mcp.tool()
 ├── adapters/
 │   └── debugpy_adapter.py # DAP communication, has evaluate() method

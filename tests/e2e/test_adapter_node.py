@@ -12,9 +12,9 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from pybugger_mcp.adapters.node_adapter import NodeAdapter, NodeLaunchConfig
-from pybugger_mcp.models.dap import SourceBreakpoint
-from pybugger_mcp.models.events import EventType
+from polybugger_mcp.adapters.node_adapter import NodeAdapter, NodeLaunchConfig
+from polybugger_mcp.models.dap import SourceBreakpoint
+from polybugger_mcp.models.events import EventType
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "javascript"
 

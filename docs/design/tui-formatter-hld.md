@@ -26,7 +26,7 @@
 
 ### 1.1 Purpose
 
-Add optional TUI (Text User Interface) formatting to pybugger-mcp's inspection tools, enabling AI agents to receive human-readable ASCII visualizations of debug state alongside structured JSON data.
+Add optional TUI (Text User Interface) formatting to polybugger-mcp's inspection tools, enabling AI agents to receive human-readable ASCII visualizations of debug state alongside structured JSON data.
 
 ### 1.2 Scope
 
@@ -116,7 +116,7 @@ Add optional TUI (Text User Interface) formatting to pybugger-mcp's inspection t
 ### 3.1 Module Structure
 
 ```
-src/pybugger_mcp/
+src/polybugger_mcp/
   utils/
     __init__.py
     output_buffer.py      # Existing
@@ -135,7 +135,7 @@ for enhanced readability in terminal environments.
 from dataclasses import dataclass
 from typing import Literal
 
-from pybugger_mcp.models.dap import Scope, StackFrame, Variable
+from polybugger_mcp.models.dap import Scope, StackFrame, Variable
 
 
 FormatType = Literal["json", "tui"]

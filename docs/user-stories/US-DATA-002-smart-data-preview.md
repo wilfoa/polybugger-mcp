@@ -13,7 +13,7 @@
 
 ### Current State
 
-When AI agents debug Python code using pybugger-mcp, they call `debug_get_variables` to inspect the current state. For common data science objects like pandas DataFrames, NumPy arrays, and large collections, the debugger returns truncated string representations that are not actionable:
+When AI agents debug Python code using polybugger-mcp, they call `debug_get_variables` to inspect the current state. For common data science objects like pandas DataFrames, NumPy arrays, and large collections, the debugger returns truncated string representations that are not actionable:
 
 ```json
 {
@@ -95,7 +95,7 @@ AI: debug_inspect_variable(variable_name="df")
 - **Faster Debugging Sessions:** Reduced latency and token usage per data inspection
 - **Higher AI Accuracy:** Structured metadata prevents expression guessing errors
 - **Better Developer Experience:** AI can provide richer context about data structures
-- **Differentiation:** Positions pybugger-mcp as the premier debugging tool for data science workflows
+- **Differentiation:** Positions polybugger-mcp as the premier debugging tool for data science workflows
 
 ---
 
@@ -163,7 +163,7 @@ AI: debug_inspect_variable(variable_name="df")
 |                       DATAFRAME INSPECTION FLOW                           |
 +---------------------------------------------------------------------------+
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     |                            |                              |
     |  "What does df look like?" |                              |
     | -------------------------> |                              |
@@ -227,7 +227,7 @@ Developer                    AI Agent                     pybugger-mcp
 1. Developer asks AI about a variable
 2. AI calls `debug_get_variables` and sees `df` with type `DataFrame`
 3. AI calls `debug_inspect_variable` for detailed metadata
-4. pybugger-mcp returns structured metadata with shape, columns, dtypes, preview
+4. polybugger-mcp returns structured metadata with shape, columns, dtypes, preview
 5. AI formats and presents comprehensive DataFrame summary to developer
 
 ### Flow 2: AI Inspects NumPy Array
@@ -237,7 +237,7 @@ Developer                    AI Agent                     pybugger-mcp
 |                       NUMPY ARRAY INSPECTION FLOW                         |
 +---------------------------------------------------------------------------+
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     |                            |                              |
     |  "What's in the weights    |                              |
     |   array?"                  |                              |
@@ -284,7 +284,7 @@ Developer                    AI Agent                     pybugger-mcp
 **Steps:**
 1. Developer asks about NumPy array
 2. AI calls `debug_inspect_variable` with variable name
-3. pybugger-mcp detects ndarray type, returns shape, dtype, statistics
+3. polybugger-mcp detects ndarray type, returns shape, dtype, statistics
 4. AI presents array summary with statistical context
 
 ### Flow 3: AI Inspects Large Dictionary
@@ -294,7 +294,7 @@ Developer                    AI Agent                     pybugger-mcp
 |                       DICTIONARY INSPECTION FLOW                          |
 +---------------------------------------------------------------------------+
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     |                            |                              |
     |  "What's in config?"       |                              |
     | -------------------------> |                              |
@@ -345,7 +345,7 @@ Developer                    AI Agent                     pybugger-mcp
 |                       FALLBACK INSPECTION FLOW                            |
 +---------------------------------------------------------------------------+
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     |                            |                              |
     |  "What is my_object?"      |                              |
     | -------------------------> |                              |
@@ -888,9 +888,9 @@ async def inspect_variable(self, var_name: str, frame_id: int | None, max_rows: 
 
 | File | Changes |
 |------|---------|
-| `src/pybugger_mcp/utils/data_inspector.py` | **New** - Type detection and introspection logic |
-| `src/pybugger_mcp/core/session.py` | Add `inspect_variable()` method delegating to adapter |
-| `src/pybugger_mcp/mcp_server.py` | Add `debug_inspect_variable` tool |
+| `src/polybugger_mcp/utils/data_inspector.py` | **New** - Type detection and introspection logic |
+| `src/polybugger_mcp/core/session.py` | Add `inspect_variable()` method delegating to adapter |
+| `src/polybugger_mcp/mcp_server.py` | Add `debug_inspect_variable` tool |
 | `tests/unit/test_data_inspector.py` | **New** - Unit tests for type detection and expression building |
 | `tests/e2e/test_data_inspection.py` | **New** - E2E tests with real pandas/numpy |
 | `pyproject.toml` | Add pandas/numpy as dev dependencies for testing |

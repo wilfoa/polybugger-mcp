@@ -818,7 +818,7 @@ class TestTimeoutHandling:
 import pytest
 from pydantic import ValidationError
 
-from pybugger_mcp.models.inspection import (
+from polybugger_mcp.models.inspection import (
     DetectedType,
     InspectionOptions,
     InspectionPreview,
@@ -936,9 +936,9 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from pybugger_mcp.core.session import SessionManager
-from pybugger_mcp.main import create_app
-from pybugger_mcp.persistence.breakpoints import BreakpointStore
+from polybugger_mcp.core.session import SessionManager
+from polybugger_mcp.main import create_app
+from polybugger_mcp.persistence.breakpoints import BreakpointStore
 
 
 @pytest_asyncio.fixture
@@ -965,7 +965,7 @@ class TestInspectVariableTool:
     @pytest.mark.asyncio
     async def test_session_not_found(self):
         """Test error response when session doesn't exist."""
-        from pybugger_mcp.mcp_server import debug_inspect_variable
+        from polybugger_mcp.mcp_server import debug_inspect_variable
 
         result = await debug_inspect_variable(
             session_id="nonexistent_session",
@@ -978,7 +978,7 @@ class TestInspectVariableTool:
     @pytest.mark.asyncio
     async def test_default_parameters(self):
         """Test default parameter values are applied correctly."""
-        from pybugger_mcp.models.inspection import InspectionOptions
+        from polybugger_mcp.models.inspection import InspectionOptions
 
         options = InspectionOptions()
         assert options.max_preview_rows == 5
@@ -988,7 +988,7 @@ class TestInspectVariableTool:
     @pytest.mark.asyncio
     async def test_max_preview_rows_capped(self):
         """Test that max_preview_rows is capped at 100."""
-        from pybugger_mcp.models.inspection import InspectionOptions
+        from polybugger_mcp.models.inspection import InspectionOptions
 
         # Valid max
         options = InspectionOptions(max_preview_rows=100)
@@ -1005,7 +1005,7 @@ class TestInspectVariableValidation:
 
     def test_variable_name_validation(self):
         """Test variable name validation patterns."""
-        from pybugger_mcp.utils.data_inspector import DataInspector
+        from polybugger_mcp.utils.data_inspector import DataInspector
 
         inspector = DataInspector()
 
@@ -1035,7 +1035,7 @@ class TestResponseFormat:
 
     def test_response_fields_present(self):
         """Test required fields are present in responses."""
-        from pybugger_mcp.models.inspection import (
+        from polybugger_mcp.models.inspection import (
             InspectionResult,
             DetectedType,
         )
@@ -1064,7 +1064,7 @@ class TestResponseFormat:
 
     def test_error_response_format(self):
         """Test error response has required fields."""
-        from pybugger_mcp.models.inspection import InspectionError
+        from polybugger_mcp.models.inspection import InspectionError
 
         error = InspectionError(
             error="Variable not found",
@@ -1120,7 +1120,7 @@ class TestDataFrameInspectionE2E:
     @pytest.mark.slow
     async def test_full_dataframe_inspection_workflow(self, dataframe_script):
         """Test complete DataFrame inspection during debug session."""
-        from pybugger_mcp.mcp_server import (
+        from polybugger_mcp.mcp_server import (
             debug_create_session,
             debug_set_breakpoints,
             debug_launch,
@@ -1197,7 +1197,7 @@ class TestDataFrameInspectionE2E:
     @pytest.mark.slow
     async def test_full_ndarray_inspection_workflow(self, dataframe_script):
         """Test complete NumPy array inspection."""
-        from pybugger_mcp.mcp_server import (
+        from polybugger_mcp.mcp_server import (
             debug_create_session,
             debug_set_breakpoints,
             debug_launch,
@@ -1268,7 +1268,7 @@ class TestDataFrameInspectionE2E:
     @pytest.mark.slow
     async def test_inspect_multiple_variables(self, dataframe_script):
         """Test inspecting multiple variables in same session."""
-        from pybugger_mcp.mcp_server import (
+        from polybugger_mcp.mcp_server import (
             debug_create_session,
             debug_set_breakpoints,
             debug_launch,
@@ -1342,7 +1342,7 @@ class TestTUIFormattingE2E:
     @pytest.mark.asyncio
     async def test_tui_formatter_integration(self):
         """Test TUI formatter produces expected output."""
-        from pybugger_mcp.utils.tui_formatter import TUIFormatter
+        from polybugger_mcp.utils.tui_formatter import TUIFormatter
 
         formatter = TUIFormatter()
 
@@ -1374,7 +1374,7 @@ class TestTUIFormattingE2E:
     @pytest.mark.asyncio
     async def test_tui_formatter_ndarray(self):
         """Test TUI formatter for ndarray inspection."""
-        from pybugger_mcp.utils.tui_formatter import TUIFormatter
+        from polybugger_mcp.utils.tui_formatter import TUIFormatter
 
         formatter = TUIFormatter()
 
@@ -1434,11 +1434,11 @@ class TestTUIFormattingE2E:
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from pybugger_mcp.models.inspection import (
+from polybugger_mcp.models.inspection import (
     DetectedType,
     InspectionOptions,
 )
-from pybugger_mcp.utils.data_inspector import DataInspector
+from polybugger_mcp.utils.data_inspector import DataInspector
 
 
 class TestEdgeCases:
@@ -1456,7 +1456,7 @@ class TestEdgeCases:
         # The DataInspector assumes variable exists
         # Test at integration level with full session
 
-        from pybugger_mcp.models.inspection import InspectionError
+        from polybugger_mcp.models.inspection import InspectionError
 
         error = InspectionError(
             error="Variable 'nonexistent' not found in current scope",
@@ -1919,8 +1919,8 @@ test-data-inspection:
                tests/unit/test_inspection_models.py \
                tests/integration/test_api_inspection.py \
                tests/e2e/test_data_inspection.py \
-               --cov=src/pybugger_mcp/utils/data_inspector \
-               --cov=src/pybugger_mcp/models/inspection \
+               --cov=src/polybugger_mcp/utils/data_inspector \
+               --cov=src/polybugger_mcp/models/inspection \
                --cov-report=xml \
                --cov-fail-under=90 \
                -v
@@ -1943,7 +1943,7 @@ pytest tests/unit/test_data_inspector.py -v
 
 # Run with coverage
 pytest tests/unit/test_data_inspector.py \
-       --cov=src/pybugger_mcp/utils/data_inspector \
+       --cov=src/polybugger_mcp/utils/data_inspector \
        --cov-report=html
 
 # Run specific test class
@@ -1972,12 +1972,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from pybugger_mcp.models.inspection import (
+from polybugger_mcp.models.inspection import (
     DetectedType,
     InspectionOptions,
     InspectionResult,
 )
-from pybugger_mcp.utils.data_inspector import (
+from polybugger_mcp.utils.data_inspector import (
     DataInspector,
     ExpressionTimeoutError,
     get_inspector,

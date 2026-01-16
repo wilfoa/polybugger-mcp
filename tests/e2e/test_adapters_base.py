@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from pybugger_mcp.adapters.base import DebugAdapter, LaunchConfig
-from pybugger_mcp.models.events import EventType
+from polybugger_mcp.adapters.base import DebugAdapter, LaunchConfig
+from polybugger_mcp.models.events import EventType
 
 
 class AdapterTestBase(ABC):
@@ -86,7 +86,7 @@ class AdapterTestBase(ABC):
         """Test setting a breakpoint."""
         await adapter.initialize()
 
-        from pybugger_mcp.models.dap import SourceBreakpoint
+        from polybugger_mcp.models.dap import SourceBreakpoint
 
         breakpoints = await adapter.set_breakpoints(
             source_path=str(self.fixture_file),
@@ -104,7 +104,7 @@ class AdapterTestBase(ABC):
         """Test launching program and hitting breakpoint."""
         await adapter.initialize()
 
-        from pybugger_mcp.models.dap import SourceBreakpoint
+        from polybugger_mcp.models.dap import SourceBreakpoint
 
         # Set breakpoint
         await adapter.set_breakpoints(
@@ -149,7 +149,7 @@ class AdapterTestBase(ABC):
         """Test inspecting variables when stopped."""
         await adapter.initialize()
 
-        from pybugger_mcp.models.dap import SourceBreakpoint
+        from polybugger_mcp.models.dap import SourceBreakpoint
 
         # Set breakpoint
         await adapter.set_breakpoints(
@@ -202,7 +202,7 @@ class AdapterTestBase(ABC):
         """Test stepping over a line."""
         await adapter.initialize()
 
-        from pybugger_mcp.models.dap import SourceBreakpoint
+        from polybugger_mcp.models.dap import SourceBreakpoint
 
         await adapter.set_breakpoints(
             source_path=str(self.fixture_file),
@@ -251,7 +251,7 @@ class AdapterTestBase(ABC):
         """Test continuing execution to program completion."""
         await adapter.initialize()
 
-        from pybugger_mcp.models.dap import SourceBreakpoint
+        from polybugger_mcp.models.dap import SourceBreakpoint
 
         await adapter.set_breakpoints(
             source_path=str(self.fixture_file),

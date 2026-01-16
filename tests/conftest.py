@@ -8,11 +8,11 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from pybugger_mcp.config import Settings
-from pybugger_mcp.core.session import SessionManager
-from pybugger_mcp.main import create_app
-from pybugger_mcp.persistence.breakpoints import BreakpointStore
-from pybugger_mcp.utils.output_buffer import OutputBuffer
+from polybugger_mcp.config import Settings
+from polybugger_mcp.core.session import SessionManager
+from polybugger_mcp.main import create_app
+from polybugger_mcp.persistence.breakpoints import BreakpointStore
+from polybugger_mcp.utils.output_buffer import OutputBuffer
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +26,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 @pytest.fixture
 def tmp_data_dir(tmp_path: Path) -> Path:
     """Create temporary data directory."""
-    data_dir = tmp_path / ".pybugger-mcp"
+    data_dir = tmp_path / ".polybugger-mcp"
     data_dir.mkdir(parents=True)
     (data_dir / "breakpoints").mkdir()
     (data_dir / "sessions").mkdir()

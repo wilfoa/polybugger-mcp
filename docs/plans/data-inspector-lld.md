@@ -48,8 +48,8 @@ This document provides the complete implementation plan for the DataFrame/NumPy 
 
 | File | Purpose |
 |------|---------|
-| `src/pybugger_mcp/utils/data_inspector.py` | DataInspector class with type detection and introspection |
-| `src/pybugger_mcp/models/inspection.py` | Pydantic models for inspection |
+| `src/polybugger_mcp/utils/data_inspector.py` | DataInspector class with type detection and introspection |
+| `src/polybugger_mcp/models/inspection.py` | Pydantic models for inspection |
 | `tests/unit/test_data_inspector.py` | Unit tests for DataInspector |
 | `tests/integration/test_inspect_variable.py` | Integration tests for MCP tool |
 | `tests/e2e/test_data_inspection.py` | E2E tests with real pandas/numpy |
@@ -58,16 +58,16 @@ This document provides the complete implementation plan for the DataFrame/NumPy 
 
 | File | Changes |
 |------|---------|
-| `src/pybugger_mcp/mcp_server.py` | Add `debug_inspect_variable` tool |
-| `src/pybugger_mcp/core/session.py` | Add `inspect_variable()` method |
-| `src/pybugger_mcp/utils/tui_formatter.py` | Add `format_inspection()` method |
+| `src/polybugger_mcp/mcp_server.py` | Add `debug_inspect_variable` tool |
+| `src/polybugger_mcp/core/session.py` | Add `inspect_variable()` method |
+| `src/polybugger_mcp/utils/tui_formatter.py` | Add `format_inspection()` method |
 | `pyproject.toml` | Add pandas/numpy as dev dependencies |
 
 ---
 
 ## 3. Pydantic Models
 
-### 3.1 File: `src/pybugger_mcp/models/inspection.py`
+### 3.1 File: `src/polybugger_mcp/models/inspection.py`
 
 ```python
 """Models for smart variable inspection.
@@ -296,7 +296,7 @@ class InspectionError(BaseModel):
 
 ## 4. DataInspector Class
 
-### 4.1 File: `src/pybugger_mcp/utils/data_inspector.py`
+### 4.1 File: `src/polybugger_mcp/utils/data_inspector.py`
 
 ```python
 """Smart variable inspection for data science types.
@@ -313,7 +313,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Protocol
 
-from pybugger_mcp.models.inspection import (
+from polybugger_mcp.models.inspection import (
     DetectedType,
     InspectionOptions,
     InspectionPreview,
@@ -1229,7 +1229,7 @@ def get_inspector() -> DataInspector:
 
 ## 5. Session Method
 
-### 5.1 Addition to `src/pybugger_mcp/core/session.py`
+### 5.1 Addition to `src/polybugger_mcp/core/session.py`
 
 Add the following method to the `Session` class after the `evaluate_watches` method (around line 404):
 
@@ -1257,8 +1257,8 @@ async def inspect_variable(
     Raises:
         InvalidSessionStateError: If session is not paused
     """
-    from pybugger_mcp.models.inspection import InspectionOptions, InspectionResult
-    from pybugger_mcp.utils.data_inspector import get_inspector
+    from polybugger_mcp.models.inspection import InspectionOptions, InspectionResult
+    from polybugger_mcp.utils.data_inspector import get_inspector
 
     self.require_state(SessionState.PAUSED)
 
@@ -1284,14 +1284,14 @@ Add this import at the top of `session.py` (with other TYPE_CHECKING imports):
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pybugger_mcp.models.inspection import InspectionOptions, InspectionResult
+    from polybugger_mcp.models.inspection import InspectionOptions, InspectionResult
 ```
 
 ---
 
 ## 6. MCP Tool
 
-### 6.1 Addition to `src/pybugger_mcp/mcp_server.py`
+### 6.1 Addition to `src/polybugger_mcp/mcp_server.py`
 
 Add the following tool after the `debug_evaluate` tool (around line 680):
 
@@ -1350,7 +1350,7 @@ async def debug_inspect_variable(
             "summary": "DataFrame with 1000 rows x 5 columns, 78.1 KB"
         }
     """
-    from pybugger_mcp.models.inspection import InspectionOptions
+    from polybugger_mcp.models.inspection import InspectionOptions
 
     manager = _get_manager()
     try:
@@ -1409,7 +1409,7 @@ async def debug_inspect_variable(
 Add to imports at top of `mcp_server.py`:
 
 ```python
-from pybugger_mcp.core.exceptions import (
+from polybugger_mcp.core.exceptions import (
     InvalidSessionStateError,
     SessionLimitError,
     SessionNotFoundError,
@@ -1422,7 +1422,7 @@ from pybugger_mcp.core.exceptions import (
 
 ## 7. TUI Formatter Extension
 
-### 7.1 Addition to `src/pybugger_mcp/utils/tui_formatter.py`
+### 7.1 Addition to `src/polybugger_mcp/utils/tui_formatter.py`
 
 Add the following method to the `TUIFormatter` class (after `format_call_chain`):
 
@@ -1727,13 +1727,13 @@ def _format_unknown_inspection(
 
 #### Task 1: Create Pydantic Models
 
-1. Create `src/pybugger_mcp/models/inspection.py`
+1. Create `src/polybugger_mcp/models/inspection.py`
 2. Define all model classes as specified in Section 3
 3. Add `__all__` exports
 
 #### Task 2: Create DataInspector Class
 
-1. Create `src/pybugger_mcp/utils/data_inspector.py`
+1. Create `src/polybugger_mcp/utils/data_inspector.py`
 2. Implement type detection expressions
 3. Implement type-specific inspection methods
 4. Implement helper methods
@@ -1811,12 +1811,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from pybugger_mcp.models.inspection import (
+from polybugger_mcp.models.inspection import (
     DetectedType,
     InspectionOptions,
     InspectionResult,
 )
-from pybugger_mcp.utils.data_inspector import (
+from polybugger_mcp.utils.data_inspector import (
     DataInspector,
     ExpressionTimeoutError,
     get_inspector,
@@ -2185,7 +2185,7 @@ class TestModuleFunctions:
 
 import pytest
 
-from pybugger_mcp.mcp_server import debug_inspect_variable
+from polybugger_mcp.mcp_server import debug_inspect_variable
 
 
 class TestInspectVariableTool:
@@ -2207,7 +2207,7 @@ class TestInspectVariableTool:
         """Test error for invalid variable names."""
         # This test would need a real session to test
         # For unit testing, we verify the validation logic
-        from pybugger_mcp.utils.data_inspector import DataInspector
+        from polybugger_mcp.utils.data_inspector import DataInspector
 
         inspector = DataInspector()
         assert inspector._is_valid_identifier("valid_name") is True
@@ -2216,7 +2216,7 @@ class TestInspectVariableTool:
     @pytest.mark.asyncio
     async def test_max_preview_rows_capped(self):
         """Test that max_preview_rows is capped at 100."""
-        from pybugger_mcp.models.inspection import InspectionOptions
+        from polybugger_mcp.models.inspection import InspectionOptions
 
         # If user requests more than 100, it should be capped
         options = InspectionOptions(max_preview_rows=100)
@@ -2225,7 +2225,7 @@ class TestInspectVariableTool:
     @pytest.mark.asyncio
     async def test_default_parameters(self):
         """Test default parameter values."""
-        from pybugger_mcp.models.inspection import InspectionOptions
+        from polybugger_mcp.models.inspection import InspectionOptions
 
         options = InspectionOptions()
         assert options.max_preview_rows == 5
@@ -2301,7 +2301,7 @@ class TestDataFrameInspection:
     @pytest.mark.slow
     async def test_full_dataframe_inspection_workflow(self, dataframe_script: str):
         """Test complete DataFrame inspection during debug session."""
-        from pybugger_mcp.mcp_server import (
+        from polybugger_mcp.mcp_server import (
             debug_create_session,
             debug_set_breakpoints,
             debug_launch,
@@ -2387,7 +2387,7 @@ class TestDataFrameInspection:
         """Test inspection with TUI formatting."""
         # This test verifies TUI output is generated
         # Full test would require running a debug session
-        from pybugger_mcp.utils.tui_formatter import TUIFormatter
+        from polybugger_mcp.utils.tui_formatter import TUIFormatter
 
         formatter = TUIFormatter()
 

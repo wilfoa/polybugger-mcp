@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pybugger_mcp.utils.source_reader import (
+from polybugger_mcp.utils.source_reader import (
     clear_cache,
     extract_call_expression,
     format_source_with_line_numbers,

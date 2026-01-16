@@ -4,9 +4,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from pybugger_mcp.core.session import Session
-from pybugger_mcp.models.dap import SourceBreakpoint
-from pybugger_mcp.persistence.sessions import SessionStore
+from polybugger_mcp.core.session import Session
+from polybugger_mcp.models.dap import SourceBreakpoint
+from polybugger_mcp.persistence.sessions import SessionStore
 
 
 @pytest.fixture

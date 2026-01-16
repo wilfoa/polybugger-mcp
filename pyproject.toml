@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "pybugger-mcp"
+name = "polybugger-mcp"
 version = "1.4.0"
-description = "MCP server for interactive Python debugging with AI agents via debugpy/DAP"
+description = "MCP server for multi-language debugging with AI agents via DAP (Python, Go, Rust, Node.js)"
 readme = "README.md"
 license = "MIT"
 authors = ["Amir Wilf"]
-keywords = ["mcp", "debugger", "debugging", "ai", "dap", "debugpy", "python", "model-context-protocol"]
+keywords = ["mcp", "debugger", "debugging", "ai", "dap", "debugpy", "delve", "lldb", "python", "go", "rust", "model-context-protocol"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -19,14 +19,14 @@ classifiers = [
     "Topic :: Software Development :: Testing",
     "Framework :: FastAPI",
 ]
-packages = [{include = "pybugger_mcp", from = "src"}]
+packages = [{include = "polybugger_mcp", from = "src"}]
 
 [tool.poetry.urls]
-Homepage = "https://github.com/wilfoa/pybugger-mcp"
-Documentation = "https://github.com/wilfoa/pybugger-mcp#readme"
-Repository = "https://github.com/wilfoa/pybugger-mcp"
-Issues = "https://github.com/wilfoa/pybugger-mcp/issues"
-Changelog = "https://github.com/wilfoa/pybugger-mcp/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/wilfoa/polybugger-mcp"
+Documentation = "https://github.com/wilfoa/polybugger-mcp#readme"
+Repository = "https://github.com/wilfoa/polybugger-mcp"
+Issues = "https://github.com/wilfoa/polybugger-mcp/issues"
+Changelog = "https://github.com/wilfoa/polybugger-mcp/blob/main/CHANGELOG.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -54,8 +54,8 @@ pandas = ">=2.0.0"
 numpy = ">=1.24.0"
 
 [tool.poetry.scripts]
-pybugger-mcp = "pybugger_mcp.mcp_server:main"
-pybugger-mcp-http = "pybugger_mcp.main:main"
+polybugger-mcp = "polybugger_mcp.mcp_server:main"
+polybugger-mcp-http = "polybugger_mcp.main:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -87,7 +87,7 @@ filterwarnings = [
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["src/pybugger_mcp"]
+source = ["src/polybugger_mcp"]
 branch = true
 omit = [
     "*/tests/*",
@@ -133,13 +133,13 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["pybugger_mcp"]
+known-first-party = ["polybugger_mcp"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG001", "ARG002"]  # Unused function arguments (fixtures)
-"src/pybugger_mcp/api/errors.py" = ["ARG001"]  # FastAPI error handlers require request arg
-"src/pybugger_mcp/mcp_server.py" = ["ARG001"]  # FastMCP lifespan requires app arg
-"src/pybugger_mcp/models/requests.py" = ["ARG003"]  # Pydantic validator signature
+"src/polybugger_mcp/api/errors.py" = ["ARG001"]  # FastAPI error handlers require request arg
+"src/polybugger_mcp/mcp_server.py" = ["ARG001"]  # FastMCP lifespan requires app arg
+"src/polybugger_mcp/models/requests.py" = ["ARG003"]  # Pydantic validator signature
 
 # MyPy configuration
 [tool.mypy]
@@ -164,7 +164,7 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
-module = "pybugger_mcp.mcp_server"
+module = "polybugger_mcp.mcp_server"
 disallow_untyped_decorators = false
 disallow_untyped_defs = false
 disallow_untyped_calls = false
@@ -173,7 +173,7 @@ warn_return_any = false
 # Semantic Release configuration
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
-version_variables = ["src/pybugger_mcp/__init__.py:__version__"]
+version_variables = ["src/polybugger_mcp/__init__.py:__version__"]
 branch = "main"
 build_command = "poetry build"
 commit_message = "chore(release): {version} [skip ci]"

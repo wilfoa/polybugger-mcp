@@ -10,9 +10,9 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from pybugger_mcp.adapters.debugpy_adapter import DebugpyAdapter
-from pybugger_mcp.models.dap import LaunchConfig, SourceBreakpoint
-from pybugger_mcp.models.events import EventType
+from polybugger_mcp.adapters.debugpy_adapter import DebugpyAdapter
+from polybugger_mcp.models.dap import LaunchConfig, SourceBreakpoint
+from polybugger_mcp.models.events import EventType
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "python"
 

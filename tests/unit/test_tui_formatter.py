@@ -2,7 +2,7 @@
 
 import pytest
 
-from pybugger_mcp.utils.tui_formatter import (
+from polybugger_mcp.utils.tui_formatter import (
     TUIConfig,
     TUIFormatter,
     format_call_chain,

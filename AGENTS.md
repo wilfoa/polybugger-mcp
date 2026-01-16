@@ -15,7 +15,7 @@ This is a Python MCP (Model Context Protocol) server that enables AI agents to d
 ## Project Structure
 
 ```
-src/pybugger_mcp/
+src/polybugger_mcp/
   api/           # FastAPI routers (sessions, breakpoints, execution, inspection, output)
   adapters/      # DAP client and debugpy adapter
   core/          # Session management, events, exceptions
@@ -39,10 +39,10 @@ tests/
 source .venv/bin/activate
 
 # Start the HTTP server
-python -m pybugger_mcp.main
+python -m polybugger_mcp.main
 
 # Start the MCP server (stdio)
-python -m pybugger_mcp.mcp_server
+python -m polybugger_mcp.mcp_server
 
 # Run tests
 pytest tests/ -v
@@ -60,7 +60,7 @@ This project includes its own debugging tools as MCP tools.
      "mcpServers": {
        "python-debugger": {
          "command": "uvx",
-         "args": ["pybugger-mcp"]
+         "args": ["polybugger-mcp"]
        }
      }
    }
@@ -88,8 +88,8 @@ To debug a failing test:
 
 ## Key Files
 
-- `src/pybugger_mcp/adapters/debugpy_adapter.py` - Core debugpy communication
-- `src/pybugger_mcp/core/session.py` - Session management and state machine
-- `src/pybugger_mcp/mcp_server.py` - MCP server with all debug tools
-- `src/pybugger_mcp/api/sessions.py` - REST API session endpoints
+- `src/polybugger_mcp/adapters/debugpy_adapter.py` - Core debugpy communication
+- `src/polybugger_mcp/core/session.py` - Session management and state machine
+- `src/polybugger_mcp/mcp_server.py` - MCP server with all debug tools
+- `src/polybugger_mcp/api/sessions.py` - REST API session endpoints
 - `tests/e2e/test_debug_session.py` - End-to-end debugging tests

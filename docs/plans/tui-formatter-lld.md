@@ -28,7 +28,7 @@ This document provides the complete implementation plan for the TUI Formatter fe
 ### 2.1 TUIFormatter Class
 
 ```
-src/pybugger_mcp/utils/tui_formatter.py
+src/polybugger_mcp/utils/tui_formatter.py
 ```
 
 ```python
@@ -908,7 +908,7 @@ main (main.py:50)
 Add to `mcp_server.py` imports:
 
 ```python
-from pybugger_mcp.utils.tui_formatter import TUIFormatter, TUIConfig
+from polybugger_mcp.utils.tui_formatter import TUIFormatter, TUIConfig
 ```
 
 ### 6.2 Formatter Instance
@@ -1096,7 +1096,7 @@ tests/unit/test_tui_formatter.py
 
 import pytest
 
-from pybugger_mcp.utils.tui_formatter import (
+from polybugger_mcp.utils.tui_formatter import (
     TUIFormatter,
     TUIConfig,
     format_stack_trace,
@@ -1402,19 +1402,19 @@ class TestCustomConfig:
 
 | File | Purpose |
 |------|---------|
-| `src/pybugger_mcp/utils/tui_formatter.py` | TUIFormatter class and helpers |
+| `src/polybugger_mcp/utils/tui_formatter.py` | TUIFormatter class and helpers |
 | `tests/unit/test_tui_formatter.py` | Unit tests for formatter |
 
 ### 8.2 Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pybugger_mcp/utils/__init__.py` | Export TUIFormatter |
-| `src/pybugger_mcp/mcp_server.py` | Add `format` param to 3 tools |
+| `src/polybugger_mcp/utils/__init__.py` | Export TUIFormatter |
+| `src/polybugger_mcp/mcp_server.py` | Add `format` param to 3 tools |
 
 ### 8.3 Detailed Change List
 
-#### `src/pybugger_mcp/utils/__init__.py`
+#### `src/polybugger_mcp/utils/__init__.py`
 
 **Current (line 1-2):**
 ```python
@@ -1426,7 +1426,7 @@ class TestCustomConfig:
 ```python
 """Utility modules - output buffer, TUI formatter, helpers."""
 
-from pybugger_mcp.utils.tui_formatter import (
+from polybugger_mcp.utils.tui_formatter import (
     TUIFormatter,
     TUIConfig,
     format_stack_trace,
@@ -1445,11 +1445,11 @@ __all__ = [
 ]
 ```
 
-#### `src/pybugger_mcp/mcp_server.py`
+#### `src/polybugger_mcp/mcp_server.py`
 
 **Add import after line 28:**
 ```python
-from pybugger_mcp.utils.tui_formatter import TUIFormatter
+from polybugger_mcp.utils.tui_formatter import TUIFormatter
 ```
 
 **Add after line 33 (_session_manager):**

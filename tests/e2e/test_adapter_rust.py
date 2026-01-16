@@ -13,13 +13,13 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from pybugger_mcp.adapters.codelldb_adapter import (
+from polybugger_mcp.adapters.codelldb_adapter import (
     CodeLLDBAdapter,
     RustLaunchConfig,
     _find_codelldb,
 )
-from pybugger_mcp.models.dap import SourceBreakpoint
-from pybugger_mcp.models.events import EventType
+from polybugger_mcp.models.dap import SourceBreakpoint
+from polybugger_mcp.models.events import EventType
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "rust"
 

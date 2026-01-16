@@ -1,6 +1,6 @@
 # TUI Formatter - Comprehensive Test Plan
 
-**Feature:** TUI/Terminal Formatting for debugging output in pybugger-mcp
+**Feature:** TUI/Terminal Formatting for debugging output in polybugger-mcp
 **Version:** 1.0
 **Author:** QA Expert Agent
 **Created:** January 14, 2026
@@ -390,7 +390,7 @@ Tests cover:
 
 import pytest
 
-from pybugger_mcp.utils.tui_formatter import (
+from polybugger_mcp.utils.tui_formatter import (
     TUIFormatter,
     TUIConfig,
     format_stack_trace,
@@ -1142,9 +1142,9 @@ in the actual MCP tool functions.
 
 import pytest
 
-import pybugger_mcp.mcp_server as mcp_server
-from pybugger_mcp.core.session import SessionManager
-from pybugger_mcp.mcp_server import (
+import polybugger_mcp.mcp_server as mcp_server
+from polybugger_mcp.core.session import SessionManager
+from polybugger_mcp.mcp_server import (
     debug_create_session,
     debug_get_stacktrace,
     debug_get_variables,
@@ -1157,7 +1157,7 @@ from pybugger_mcp.mcp_server import (
 @pytest.fixture
 async def session_manager(tmp_path):
     """Create and start a session manager for testing."""
-    from pybugger_mcp.persistence.breakpoints import BreakpointStore
+    from polybugger_mcp.persistence.breakpoints import BreakpointStore
 
     breakpoint_store = BreakpointStore(base_dir=tmp_path / "breakpoints")
     manager = SessionManager(breakpoint_store=breakpoint_store)
@@ -1815,7 +1815,7 @@ pytest tests/unit/test_tui_formatter.py -v
 pytest tests/integration/test_tui_integration.py -v
 
 # Run with coverage
-pytest tests/unit/test_tui_formatter.py tests/integration/test_tui_integration.py --cov=pybugger_mcp.utils.tui_formatter --cov-report=term-missing
+pytest tests/unit/test_tui_formatter.py tests/integration/test_tui_integration.py --cov=polybugger_mcp.utils.tui_formatter --cov-report=term-missing
 
 # Run specific test class
 pytest tests/unit/test_tui_formatter.py::TestFormatStackTrace -v

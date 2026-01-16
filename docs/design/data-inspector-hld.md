@@ -79,7 +79,7 @@ Add a new MCP tool `debug_inspect_variable` that provides intelligent inspection
                |                                          |
                v                                          v
     +------------------------------------------------------------------+
-    |                     pybugger-mcp Server                          |
+    |                     polybugger-mcp Server                          |
     |                                                                  |
     |  +--------------------+     +--------------------+               |
     |  |   MCP Server       |     |   debugpy Adapter  |               |
@@ -104,7 +104,7 @@ Add a new MCP tool `debug_inspect_variable` that provides intelligent inspection
 ### 2.2 Current Architecture
 
 ```
-src/pybugger_mcp/
+src/polybugger_mcp/
   mcp_server.py          # MCP tools (@mcp.tool() decorators)
   adapters/
     debugpy_adapter.py   # DAP communication, evaluate() method
@@ -120,7 +120,7 @@ src/pybugger_mcp/
 ### 2.3 Architecture with Data Inspector
 
 ```
-src/pybugger_mcp/
+src/polybugger_mcp/
   mcp_server.py          # + debug_inspect_variable tool
   adapters/
     debugpy_adapter.py   # (unchanged)
@@ -741,7 +741,7 @@ result = InspectionResult(
 - MCP server is a debugging tool, not a data science tool
 - Target code has pandas/numpy; MCP server doesn't need them
 - All introspection happens via evaluate() in the debugged process
-- Keeps pybugger-mcp lightweight and fast to install
+- Keeps polybugger-mcp lightweight and fast to install
 
 **Testing Consideration:** pandas and numpy added as dev dependencies for integration testing only.
 

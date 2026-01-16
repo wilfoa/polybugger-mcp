@@ -1,6 +1,6 @@
 """Tests for MCP server tools."""
 
-from pybugger_mcp.mcp_server import mcp
+from polybugger_mcp.mcp_server import mcp
 
 
 class TestMCPServerRegistration:

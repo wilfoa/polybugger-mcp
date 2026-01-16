@@ -87,7 +87,7 @@ Add adapters for Node.js, Go, etc.
 ## File Structure
 
 ```
-src/pybugger_mcp/
+src/polybugger_mcp/
   adapters/
     __init__.py
     base.py              # NEW: DebugAdapter ABC

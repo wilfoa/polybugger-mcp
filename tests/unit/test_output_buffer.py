@@ -1,6 +1,6 @@
 """Tests for output buffer."""
 
-from pybugger_mcp.utils.output_buffer import OutputBuffer
+from polybugger_mcp.utils.output_buffer import OutputBuffer
 
 
 class TestOutputBuffer:

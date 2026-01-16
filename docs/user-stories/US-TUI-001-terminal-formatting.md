@@ -13,7 +13,7 @@
 
 ### Current State
 
-pybugger-mcp currently returns all debugging information as raw JSON responses. When AI agents (Claude, GPT, Copilot) present this information to developers in terminal/CLI interfaces, they must:
+polybugger-mcp currently returns all debugging information as raw JSON responses. When AI agents (Claude, GPT, Copilot) present this information to developers in terminal/CLI interfaces, they must:
 
 1. Parse nested JSON structures manually
 2. Generate their own text formatting for each response type
@@ -60,7 +60,7 @@ Stack Trace (3 frames)
 - **Reduced Token Usage:** Pre-formatted output eliminates AI agents needing to generate formatting (est. 30-50% fewer tokens for display)
 - **Faster Time-to-Insight:** Developers can scan formatted tables/trees faster than parsing JSON
 - **Consistency:** All AI clients get identical, well-designed formatting
-- **Differentiation:** Positions pybugger-mcp as the most developer-friendly debugging MCP server
+- **Differentiation:** Positions polybugger-mcp as the most developer-friendly debugging MCP server
 
 ---
 
@@ -71,7 +71,7 @@ Stack Trace (3 frames)
 **Representative Users:** Claude (Anthropic), GPT-4 (OpenAI), Copilot (GitHub), Cline, Cursor AI
 
 **Characteristics:**
-- Consume pybugger-mcp tools via MCP protocol
+- Consume polybugger-mcp tools via MCP protocol
 - Present debugging information to human developers
 - Operate in terminal/CLI environments (VS Code terminal, macOS Terminal, Windows Terminal)
 - Need to minimize token usage while maximizing information clarity
@@ -120,7 +120,7 @@ Stack Trace (3 frames)
 │                         FORMATTED STACK TRACE FLOW                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     │                            │                              │
     │  "Show me the call stack"  │                              │
     │ ─────────────────────────> │                              │
@@ -152,7 +152,7 @@ Developer                    AI Agent                     pybugger-mcp
 **Steps:**
 1. Developer asks AI to show the call stack
 2. AI calls `debug_get_stacktrace` with `format="tui"` parameter
-3. pybugger-mcp returns response with `formatted` field containing ASCII table
+3. polybugger-mcp returns response with `formatted` field containing ASCII table
 4. AI displays the `formatted` string directly to developer
 5. Developer sees clean, aligned stack trace
 
@@ -163,7 +163,7 @@ Developer                    AI Agent                     pybugger-mcp
 │                         FORMATTED VARIABLES FLOW                            │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     │                            │                              │
     │  "What are the local       │                              │
     │   variables?"              │                              │
@@ -199,7 +199,7 @@ Developer                    AI Agent                     pybugger-mcp
 1. Developer asks about local variables
 2. AI calls `debug_get_scopes` to get scope references (format doesn't apply here)
 3. AI calls `debug_get_variables` with `format="tui"`
-4. pybugger-mcp returns formatted table with type alignment
+4. polybugger-mcp returns formatted table with type alignment
 5. Developer sees organized variable table with truncated complex values
 
 ### Flow 3: AI Requests Call Hierarchy Visualization
@@ -209,7 +209,7 @@ Developer                    AI Agent                     pybugger-mcp
 │                       CALL HIERARCHY TREE FLOW                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Developer                    AI Agent                     pybugger-mcp
+Developer                    AI Agent                     polybugger-mcp
     │                            │                              │
     │  "Show me how we got here" │                              │
     │ ─────────────────────────> │                              │
@@ -238,7 +238,7 @@ Developer                    AI Agent                     pybugger-mcp
 **Steps:**
 1. Developer asks for call hierarchy context
 2. AI requests stack trace with `format="tui"` and `style="tree"`
-3. pybugger-mcp returns tree-structured visualization
+3. polybugger-mcp returns tree-structured visualization
 4. Developer sees visual call flow with current position marked
 
 ---
@@ -488,7 +488,7 @@ The following are explicitly **NOT** included in this feature:
 
 ### Suggested Implementation Approach
 
-1. **Create Formatter Module:** `src/pybugger_mcp/formatters/`
+1. **Create Formatter Module:** `src/polybugger_mcp/formatters/`
    - `tui.py` - TUI formatting functions
    - `__init__.py` - Format dispatcher
 

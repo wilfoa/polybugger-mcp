@@ -2,10 +2,10 @@
 # Includes Python, Node.js, Go, and Rust debug tools
 #
 # Build:
-#   docker build -f Dockerfile.test -t pybugger-mcp-test .
+#   docker build -f Dockerfile.test -t polybugger-mcp-test .
 #
 # Run (requires SYS_PTRACE for debuggers):
-#   docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined pybugger-mcp-test
+#   docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined polybugger-mcp-test
 
 FROM python:3.11-slim-bookworm
 

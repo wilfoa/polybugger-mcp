@@ -62,7 +62,7 @@ def _compile_fixture() -> Path | None:
 # Skip all tests if CodeLLDB or Rust is not available
 pytestmark = [
     pytest.mark.skipif(
-        _find_codelldb() is None,
+        _find_codelldb()[0] is None,
         reason="CodeLLDB not found (install VS Code extension vadimcn.vscode-lldb)",
     ),
     pytest.mark.skipif(

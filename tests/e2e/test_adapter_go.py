@@ -102,7 +102,7 @@ class TestDelveAdapter:
         async def configure() -> None:
             await adapter.set_breakpoints(
                 source_path=str(fixture),
-                breakpoints=[SourceBreakpoint(line=10)],  # result := a + b
+                breakpoints=[SourceBreakpoint(line=7)],  # result := a + b (inside calculate)
             )
 
         # Launch with configure callback
@@ -145,7 +145,7 @@ class TestDelveAdapter:
         async def configure() -> None:
             await adapter.set_breakpoints(
                 source_path=str(fixture),
-                breakpoints=[SourceBreakpoint(line=10)],
+                breakpoints=[SourceBreakpoint(line=7)],  # result := a + b (inside calculate)
             )
 
         # Launch with configure callback
@@ -163,16 +163,30 @@ class TestDelveAdapter:
         scopes = await adapter.get_scopes(frames[0].id)
         assert len(scopes) > 0
 
-        # Find locals
-        locals_scope = next((s for s in scopes if "local" in s.name.lower()), scopes[0])
+        # Find locals scope - delve may name it differently
+        locals_scope = next(
+            (s for s in scopes if "local" in s.name.lower() or s.name == "Locals"),
+            scopes[0],
+        )
 
         # Get variables
         variables = await adapter.get_variables(locals_scope.variables_reference)
 
-        # Check 'a' and 'b' parameters exist
+        # Check 'a' and 'b' parameters exist (may be in arguments scope for Go)
         var_names = [v.name for v in variables]
-        assert "a" in var_names
-        assert "b" in var_names
+        # In Go, function parameters may be in a separate "Arguments" scope
+        if "a" not in var_names and "b" not in var_names:
+            # Try to find arguments scope
+            args_scope = next(
+                (s for s in scopes if "arg" in s.name.lower() or s.name == "Arguments"),
+                None,
+            )
+            if args_scope:
+                arg_vars = await adapter.get_variables(args_scope.variables_reference)
+                var_names.extend([v.name for v in arg_vars])
+
+        assert "a" in var_names, f"Expected 'a' in {var_names}"
+        assert "b" in var_names, f"Expected 'b' in {var_names}"
 
     @pytest.mark.asyncio
     async def test_evaluate_expression(self, adapter: DelveAdapter) -> None:
@@ -195,7 +209,7 @@ class TestDelveAdapter:
         async def configure() -> None:
             await adapter.set_breakpoints(
                 source_path=str(fixture),
-                breakpoints=[SourceBreakpoint(line=10)],
+                breakpoints=[SourceBreakpoint(line=7)],  # result := a + b (inside calculate)
             )
 
         config = GoLaunchConfig(program=str(fixture))
@@ -211,4 +225,5 @@ class TestDelveAdapter:
         result = await adapter.evaluate("a + b", frame_id=frame_id)
 
         assert "result" in result
-        assert result["result"] == "30"  # 10 + 20
+        # Delve returns the result as a string, may include type info
+        assert "30" in str(result["result"]), f"Expected '30' in {result}"

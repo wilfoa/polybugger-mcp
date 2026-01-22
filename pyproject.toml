@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "polybugger-mcp"
-version = "1.6.0"
+version = "1.7.0"
 description = "MCP server for multi-language debugging with AI agents via DAP (Python, Go, Rust, Node.js)"
 readme = "README.md"
 license = "MIT"

@@ -58,12 +58,14 @@ class Session:
         name: str | None = None,
         timeout_minutes: int = 60,
         language: str = "python",
+        python_path: str | None = None,
     ):
         self.id = session_id
         self.project_root = project_root
         self.name = name or f"session-{session_id[:8]}"
         self.timeout_minutes = timeout_minutes
         self.language = language
+        self.python_path = python_path  # Custom Python interpreter for this session
 
         self._state = SessionState.CREATED
         self._state_lock = asyncio.Lock()
@@ -553,6 +555,7 @@ class Session:
             project_root=str(self.project_root),
             state=self._state.value,
             language=self.language,
+            python_path=self.python_path,
             created_at=self.created_at,
             last_activity=self.last_activity,
             breakpoints={
@@ -581,6 +584,7 @@ class Session:
             project_root=Path(data.project_root),
             name=data.name,
             language=data.language,
+            python_path=data.python_path,
         )
 
         # Restore breakpoints
@@ -699,6 +703,7 @@ class SessionManager:
                 name=config.name,
                 timeout_minutes=config.timeout_minutes,
                 language=config.language,
+                python_path=config.python_path,
             )
 
             # Initialize adapter

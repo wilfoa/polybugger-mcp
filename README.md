@@ -69,7 +69,7 @@ Add to `~/.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "python-debugger": {
+    "polybugger": {
       "command": "uvx",
       "args": ["polybugger-mcp"]
     }
@@ -83,7 +83,7 @@ Add to `~/.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "python-debugger": {
+    "polybugger": {
       "command": "python",
       "args": ["-m", "polybugger_mcp.mcp_server"]
     }
@@ -99,7 +99,7 @@ Add to `~/.cursor/mcp.json`:
 Use the VS Code CLI:
 
 ```bash
-code --add-mcp '{"name":"python-debugger","command":"uvx","args":["polybugger-mcp"]}'
+code --add-mcp '{"name":"polybugger","command":"uvx","args":["polybugger-mcp"]}'
 ```
 
 Or add to your MCP settings manually.
@@ -109,7 +109,7 @@ Or add to your MCP settings manually.
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add python-debugger -- uvx polybugger-mcp
+claude mcp add polybugger -- uvx polybugger-mcp
 ```
 </details>
 
@@ -121,7 +121,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 ```json
 {
   "mcpServers": {
-    "python-debugger": {
+    "polybugger": {
       "command": "uvx",
       "args": ["polybugger-mcp"]
     }
@@ -138,7 +138,7 @@ Add to `~/.config/opencode/opencode.json`:
 ```json
 {
   "mcp": {
-    "python-debugger": {
+    "polybugger": {
       "type": "local",
       "command": ["uvx", "polybugger-mcp"],
       "enabled": true
@@ -156,7 +156,7 @@ Add to your Windsurf MCP config:
 ```json
 {
   "mcpServers": {
-    "python-debugger": {
+    "polybugger": {
       "command": "uvx",
       "args": ["polybugger-mcp"]
     }
@@ -173,7 +173,7 @@ Add to your `cline_mcp_settings.json`:
 ```json
 {
   "mcpServers": {
-    "python-debugger": {
+    "polybugger": {
       "command": "uvx",
       "args": ["polybugger-mcp"],
       "disabled": false
@@ -203,7 +203,7 @@ Or in your MCP config:
 ```json
 {
   "mcpServers": {
-    "python-debugger": {
+    "polybugger": {
       "command": "docker",
       "args": ["run", "-i", "--rm", "ghcr.io/wilfoa/polybugger-mcp"]
     }

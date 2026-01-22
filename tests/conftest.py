@@ -1,24 +1,23 @@
 """Global test fixtures."""
 
-import asyncio
-from collections.abc import AsyncGenerator, Generator
-from pathlib import Path
-
+# Load .env before importing Settings (which validates env vars on import)
 from dotenv import load_dotenv
 
-# Load .env file for test API keys (e.g., ANTHROPIC_API_KEY for LLM tests)
-# This must happen before any imports that instantiate Settings
 load_dotenv()
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+import asyncio  # noqa: E402
+from collections.abc import AsyncGenerator, Generator  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-from polybugger_mcp.config import Settings
-from polybugger_mcp.core.session import SessionManager
-from polybugger_mcp.main import create_app
-from polybugger_mcp.persistence.breakpoints import BreakpointStore
-from polybugger_mcp.utils.output_buffer import OutputBuffer
+import pytest  # noqa: E402
+import pytest_asyncio  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+
+from polybugger_mcp.config import Settings  # noqa: E402
+from polybugger_mcp.core.session import SessionManager  # noqa: E402
+from polybugger_mcp.main import create_app  # noqa: E402
+from polybugger_mcp.persistence.breakpoints import BreakpointStore  # noqa: E402
+from polybugger_mcp.utils.output_buffer import OutputBuffer  # noqa: E402
 
 
 @pytest.fixture(scope="session")

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
         env_prefix="POLYBUGGER_MCP_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",  # Allow other env vars like ANTHROPIC_API_KEY
     )
 
     # Server settings

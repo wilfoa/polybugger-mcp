@@ -6,7 +6,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load environment variables from .env file (for API keys, etc.)
+# Load .env file for test API keys (e.g., ANTHROPIC_API_KEY for LLM tests)
+# This must happen before any imports that instantiate Settings
 load_dotenv()
 
 import pytest

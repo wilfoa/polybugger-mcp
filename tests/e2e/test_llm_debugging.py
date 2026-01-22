@@ -71,6 +71,10 @@ DEBUG_TOOLS = [
                     "type": "string",
                     "description": "Session name (optional)",
                 },
+                "python_path": {
+                    "type": "string",
+                    "description": "Path to Python interpreter (e.g., .venv/bin/python). Uses system default if not set.",
+                },
             },
             "required": ["project_root"],
         },
@@ -290,14 +294,18 @@ class DebugToolExecutor:
                 project_root=tool_input.get("project_root", str(self.project_root)),
                 language=tool_input.get("language", "python"),
                 name=tool_input.get("name"),
+                python_path=tool_input.get("python_path"),
             )
             session = await self.manager.create_session(config)
-            return {
+            result = {
                 "session_id": session.id,
                 "name": session.name,
                 "language": session.language,
                 "state": session.state.value,
             }
+            if session.python_path:
+                result["python_path"] = session.python_path
+            return result
 
         if tool_name == "debug_set_breakpoints":
             session = await self.manager.get_session(tool_input["session_id"])
@@ -798,3 +806,89 @@ Finally, report your findings about what languages are supported."""
 
         print("\n=== Language Selection Test ===")
         print(f"Tool calls: {[tc['name'] for tc in result['tool_calls']]}")
+
+    @pytest.mark.timeout(120)
+    async def test_llm_uses_custom_python_path(
+        self,
+        session_manager: SessionManager,
+        anthropic_client: "anthropic.Anthropic",
+        buggy_division_script: Path,
+    ):
+        """Test that LLM can use a custom python_path when debugging.
+
+        This verifies that the LLM understands and can use the python_path
+        parameter to specify a custom Python interpreter (e.g., from a venv).
+        """
+        import sys
+
+        executor = DebugToolExecutor(
+            session_manager,
+            buggy_division_script.parent,
+        )
+
+        # Use the current Python interpreter as our "custom" path
+        current_python = sys.executable
+
+        system_prompt = """You are an expert debugger. Use the debug tools to find bugs in Python code.
+
+IMPORTANT: The user wants to use a specific Python interpreter for debugging.
+When creating the debug session, you MUST use the python_path parameter to specify the interpreter.
+
+Workflow:
+1. Create a debug session with debug_create_session, using the provided python_path
+2. Set breakpoints at suspicious locations with debug_set_breakpoints
+3. Launch the program with debug_launch
+4. Poll for events with debug_poll_events
+5. Use inspection tools to understand what went wrong
+6. Call report_findings with your analysis
+7. Clean up with debug_terminate_session"""
+
+        user_prompt = f"""Debug this Python script using a specific Python interpreter:
+
+File: {buggy_division_script}
+Python interpreter to use: {current_python}
+
+The script processes groups of numbers and calculates averages, but it crashes.
+
+IMPORTANT: When creating the debug session, you MUST pass python_path="{current_python}"
+to use the correct interpreter.
+
+Find the bug and report your findings."""
+
+        result = await run_llm_debug_session(
+            anthropic_client,
+            executor,
+            system_prompt,
+            user_prompt,
+        )
+
+        # Verify tools were used for debugging
+        tool_names = [tc["name"] for tc in result["tool_calls"]]
+        assert "debug_create_session" in tool_names, "Should create a debug session"
+
+        # Verify that python_path was used in the create_session call
+        create_calls = [tc for tc in result["tool_calls"] if tc["name"] == "debug_create_session"]
+        assert len(create_calls) > 0, "Should have at least one create_session call"
+
+        # Check that python_path was included
+        create_input = create_calls[0]["input"]
+        assert "python_path" in create_input, (
+            f"LLM should use python_path parameter. Got input: {create_input}"
+        )
+        assert create_input["python_path"] == current_python, (
+            f"LLM should use the specified Python path. "
+            f"Expected: {current_python}, Got: {create_input.get('python_path')}"
+        )
+
+        # Verify the program was launched successfully
+        assert "debug_launch" in tool_names, "Should launch the program"
+
+        print("\n=== Python Path Test Results ===")
+        print(f"Iterations: {result['iterations']}")
+        print(f"Tool calls: {len(result['tool_calls'])}")
+        print(f"Python path used: {create_input.get('python_path')}")
+
+        if result["findings"]:
+            print("\nFindings:")
+            print(f"  Location: {result['findings']['bug_location']}")
+            print(f"  Description: {result['findings']['bug_description']}")

@@ -4,6 +4,11 @@ import asyncio
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (for API keys, etc.)
+load_dotenv()
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient

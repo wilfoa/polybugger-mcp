@@ -153,6 +153,62 @@ class TestSessionTools:
         assert "error" in result
         assert result["code"] == "NOT_FOUND"
 
+    @pytest.mark.asyncio
+    async def test_create_session_with_python_path(self, session_manager, tmp_path):
+        """Test debug_create_session with custom python_path."""
+        import sys
+
+        result = await debug_create_session(
+            project_root=str(tmp_path),
+            name="test-venv-session",
+            python_path=sys.executable,  # Use current interpreter as test
+        )
+
+        assert "session_id" in result
+        assert result["python_path"] == sys.executable
+        assert result["state"] == "created"
+
+    @pytest.mark.asyncio
+    async def test_create_session_without_python_path(self, session_manager, tmp_path):
+        """Test debug_create_session without python_path doesn't include it in response."""
+        result = await debug_create_session(
+            project_root=str(tmp_path),
+            name="test-no-venv-session",
+        )
+
+        assert "session_id" in result
+        assert "python_path" not in result  # Should not be in response when None
+
+    @pytest.mark.asyncio
+    async def test_get_session_with_python_path(self, session_manager, tmp_path):
+        """Test debug_get_session returns python_path when set."""
+        import sys
+
+        create_result = await debug_create_session(
+            project_root=str(tmp_path),
+            python_path=sys.executable,
+        )
+        session_id = create_result["session_id"]
+
+        result = await debug_get_session(session_id=session_id)
+
+        assert result["python_path"] == sys.executable
+
+    @pytest.mark.asyncio
+    async def test_list_sessions_includes_python_path(self, session_manager, tmp_path):
+        """Test debug_list_sessions includes python_path in session info."""
+        import sys
+
+        await debug_create_session(
+            project_root=str(tmp_path),
+            python_path=sys.executable,
+        )
+
+        result = await debug_list_sessions()
+
+        assert result["total"] == 1
+        assert result["sessions"][0]["python_path"] == sys.executable
+
 
 class TestBreakpointTools:
     """Tests for breakpoint management tools."""

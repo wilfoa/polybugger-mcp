@@ -85,6 +85,7 @@ async def debug_create_session(
     language: str = "python",
     name: str | None = None,
     timeout_minutes: int = 60,
+    python_path: str | None = None,
 ) -> dict[str, Any]:
     """Create a debug session. Returns session_id for other operations.
 
@@ -93,6 +94,7 @@ async def debug_create_session(
         language: Programming language (python, javascript, go, rust)
         name: Session name (optional)
         timeout_minutes: Timeout (default 60)
+        python_path: Path to Python interpreter (e.g., .venv/bin/python). Uses system default if not set.
     """
     from polybugger_mcp.adapters.factory import is_language_supported
 
@@ -113,9 +115,10 @@ async def debug_create_session(
             language=language,
             name=name,
             timeout_minutes=timeout_minutes,
+            python_path=python_path,
         )
         session = await manager.create_session(config)
-        return {
+        result = {
             "session_id": session.id,
             "name": session.name,
             "project_root": str(session.project_root),
@@ -123,6 +126,9 @@ async def debug_create_session(
             "state": session.state.value,
             "message": f"Session created for {language}. Set breakpoints and then launch.",
         }
+        if session.python_path:
+            result["python_path"] = session.python_path
+        return result
     except SessionLimitError as e:
         return {"error": str(e), "code": "SESSION_LIMIT"}
 
@@ -151,6 +157,7 @@ async def debug_list_sessions() -> dict[str, Any]:
                 "name": s.name,
                 "project_root": str(s.project_root),
                 "language": s.language,
+                "python_path": s.python_path,
                 "state": s.state.value,
                 "stop_reason": s.stop_reason,
             }
@@ -166,7 +173,7 @@ async def debug_get_session(session_id: str) -> dict[str, Any]:
     manager = _get_manager()
     try:
         session = await manager.get_session(session_id)
-        return {
+        result = {
             "session_id": session.id,
             "name": session.name,
             "project_root": str(session.project_root),
@@ -176,6 +183,9 @@ async def debug_get_session(session_id: str) -> dict[str, Any]:
             "stop_reason": session.stop_reason,
             "stop_location": session.stop_location,
         }
+        if session.python_path:
+            result["python_path"] = session.python_path
+        return result
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
 
@@ -360,6 +370,10 @@ async def debug_launch(
         }
         if cwd is not None:
             launch_kwargs["cwd"] = cwd
+
+        # Use session's python_path if configured
+        if session.python_path:
+            launch_kwargs["python_path"] = session.python_path
 
         config = LaunchConfig(**launch_kwargs)
 

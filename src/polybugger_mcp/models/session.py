@@ -13,6 +13,10 @@ class SessionConfig(BaseModel):
     language: str = Field(default="python", description="Programming language to debug")
     timeout_minutes: int = Field(default=60, ge=1, le=1440)  # Max 24 hours
     recover_from: str | None = None  # Session ID to recover settings from
+    python_path: str | None = Field(
+        default=None,
+        description="Path to Python interpreter (e.g., venv/bin/python). If not set, uses system default.",
+    )
 
 
 class SessionInfo(BaseModel):

@@ -26,6 +26,7 @@ class PersistedSession(BaseModel):
     project_root: str
     state: str
     language: str = "python"  # Programming language for debug adapter
+    python_path: str | None = None  # Custom Python interpreter path
     created_at: datetime
     last_activity: datetime
     breakpoints: dict[str, list[dict[str, Any]]]

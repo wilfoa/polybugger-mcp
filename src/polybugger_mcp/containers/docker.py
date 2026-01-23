@@ -401,9 +401,7 @@ class DockerRuntime(ContainerRuntimeAdapter):
                 result.stderr,
             )
 
-        logger.info(
-            f"Injected debugpy into PID {process_id} in container {target.identifier}"
-        )
+        logger.info(f"Injected debugpy into PID {process_id} in container {target.identifier}")
 
     async def launch_with_debugpy(
         self,
@@ -456,6 +454,4 @@ class DockerRuntime(ContainerRuntimeAdapter):
                 result.stderr,
             )
 
-        logger.info(
-            f"Launched debugpy in container {target.identifier} on port {port}"
-        )
+        logger.info(f"Launched debugpy in container {target.identifier} on port {port}")

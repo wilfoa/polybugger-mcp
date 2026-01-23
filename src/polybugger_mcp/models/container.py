@@ -48,12 +48,8 @@ class SSHConfig(BaseModel):
     host: str = Field(description="SSH server hostname or IP")
     user: str = Field(description="SSH username")
     port: int = Field(default=22, description="SSH port")
-    key_path: str | None = Field(
-        default=None, description="Path to SSH private key file"
-    )
-    password: str | None = Field(
-        default=None, description="SSH password (key_path preferred)"
-    )
+    key_path: str | None = Field(default=None, description="Path to SSH private key file")
+    password: str | None = Field(default=None, description="SSH password (key_path preferred)")
     # For jump hosts / bastion
     jump_host: str | None = Field(default=None, description="SSH jump host (bastion)")
     jump_user: str | None = Field(default=None, description="Jump host username")
@@ -69,12 +65,8 @@ class ContainerTarget(BaseModel):
     runtime: ContainerRuntime = Field(description="Container runtime type")
 
     # Docker/Podman identification (use one)
-    container_id: str | None = Field(
-        default=None, description="Container ID (Docker/Podman)"
-    )
-    container_name: str | None = Field(
-        default=None, description="Container name (Docker/Podman)"
-    )
+    container_id: str | None = Field(default=None, description="Container ID (Docker/Podman)")
+    container_name: str | None = Field(default=None, description="Container name (Docker/Podman)")
 
     # Kubernetes identification
     namespace: str = Field(default="default", description="Kubernetes namespace")
@@ -86,9 +78,7 @@ class ContainerTarget(BaseModel):
     )
 
     # Remote access
-    ssh: SSHConfig | None = Field(
-        default=None, description="SSH config for remote container hosts"
-    )
+    ssh: SSHConfig | None = Field(default=None, description="SSH config for remote container hosts")
 
     @property
     def identifier(self) -> str:
@@ -105,9 +95,7 @@ class ContainerAttachConfig(BaseModel):
     target: ContainerTarget = Field(description="Container to attach to")
 
     # Process identification (use one)
-    process_id: int | None = Field(
-        default=None, description="PID of process inside container"
-    )
+    process_id: int | None = Field(default=None, description="PID of process inside container")
     process_name: str | None = Field(
         default=None,
         description="Process name filter (e.g., 'python', 'gunicorn')",
@@ -139,19 +127,13 @@ class ContainerLaunchConfig(BaseModel):
     target: ContainerTarget = Field(description="Container to launch in")
 
     # What to run (use one)
-    program: str | None = Field(
-        default=None, description="Script path inside container"
-    )
-    module: str | None = Field(
-        default=None, description="Python module to run (e.g., 'pytest')"
-    )
+    program: str | None = Field(default=None, description="Script path inside container")
+    module: str | None = Field(default=None, description="Python module to run (e.g., 'pytest')")
 
     # Execution options
     args: list[str] = Field(default_factory=list, description="Program arguments")
     cwd: str = Field(default="/app", description="Working directory inside container")
-    env: dict[str, str] = Field(
-        default_factory=dict, description="Environment variables"
-    )
+    env: dict[str, str] = Field(default_factory=dict, description="Environment variables")
 
     # Debug options
     debugpy_port: int = Field(default=5678, description="Port for debugpy")

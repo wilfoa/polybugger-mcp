@@ -26,7 +26,7 @@
 
 ### LLM Autonomously Finds Bugs
 
-<!-- 
+<!--
 To generate these GIFs, install VHS (https://github.com/charmbracelet/vhs) and run:
   vhs docs/tapes/llm_division_bug.tape
   vhs docs/tapes/llm_index_error.tape
@@ -402,7 +402,7 @@ AI: I'll list the Python processes in that container and attach the debugger.
     - File: /app/server.py
     - Function: handle_request
     - Line: 45
-    
+
     I can see the request object contains invalid JSON. The 'data' field is None.
 ```
 

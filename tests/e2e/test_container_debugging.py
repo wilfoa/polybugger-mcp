@@ -23,7 +23,7 @@ import pytest
 from polybugger_mcp.containers.factory import create_runtime, is_runtime_supported
 from polybugger_mcp.core.session import SessionManager
 from polybugger_mcp.models.container import ContainerRuntime, ContainerTarget
-from polybugger_mcp.models.dap import AttachConfig, PathMapping, SourceBreakpoint
+from polybugger_mcp.models.dap import AttachConfig, PathMapping
 from polybugger_mcp.models.session import SessionConfig
 
 
@@ -207,9 +207,7 @@ class DockerContainer:
 
     async def install_debugpy(self) -> None:
         """Install debugpy in the container."""
-        exit_code, stdout, stderr = await self.exec(
-            ["pip", "install", "--quiet", "debugpy"]
-        )
+        exit_code, stdout, stderr = await self.exec(["pip", "install", "--quiet", "debugpy"])
         if exit_code != 0:
             raise RuntimeError(f"Failed to install debugpy: {stderr}")
 
@@ -283,7 +281,7 @@ class TestContainerDebuggingBasics:
             # Even if ps fails, we should at least get results from /proc fallback
             # The process might have different name depending on how it's run
             assert len(processes) >= 0, "Should not error when finding processes"
-            
+
             # Try direct exec to verify Python is running
             result = await runtime.exec_command(
                 target,
@@ -403,12 +401,13 @@ class TestContainerDebugAttach:
                 capture_output=True,
                 text=True,
             )
-            
+
             if result.returncode != 0:
                 pytest.skip(f"Failed to start debugpy script: {result.stderr}")
 
             # Wait for debugpy to start listening - check by trying to connect
             import socket as sock_module
+
             connected = False
             for _ in range(15):
                 await asyncio.sleep(1)
@@ -419,7 +418,7 @@ class TestContainerDebugAttach:
                     s.close()
                     connected = True
                     break
-                except (ConnectionRefusedError, sock_module.timeout, OSError):
+                except (ConnectionRefusedError, TimeoutError, OSError):
                     continue
 
             if not connected:
@@ -508,18 +507,23 @@ class TestContainerDebugLaunch:
             # Check that debugpy is listening by trying to connect from inside container
             result = await runtime.exec_command(
                 target,
-                ["python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', 5678)); s.close(); print('connected')"],
+                [
+                    "python",
+                    "-c",
+                    "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', 5678)); s.close(); print('connected')",
+                ],
                 timeout=10.0,
             )
-            
+
             # If debugpy is listening and not waiting for client, connection should succeed
             # The script might have finished quickly, so we just verify no hard errors
-            assert result.exit_code == 0 or "connected" in result.stdout or result.timed_out == False
+            assert result.exit_code == 0 or "connected" in result.stdout or not result.timed_out
 
 
 # =============================================================================
 # LLM-based Container Debugging Test
 # =============================================================================
+
 
 # Check for Anthropic API key
 def get_api_key() -> str | None:
@@ -807,8 +811,7 @@ class ContainerDebugToolExecutor:
             scopes = await session.get_scopes(tool_input["frame_id"])
             return {
                 "scopes": [
-                    {"name": s.name, "variables_reference": s.variables_reference}
-                    for s in scopes
+                    {"name": s.name, "variables_reference": s.variables_reference} for s in scopes
                 ]
             }
 
@@ -945,7 +948,7 @@ Start by creating a session and listing the processes."""
             tool_calls = []
             max_iterations = 15
 
-            for iteration in range(max_iterations):
+            for _iteration in range(max_iterations):
                 # Call Claude
                 response = anthropic_client.messages.create(
                     model="claude-sonnet-4-20250514",
@@ -1020,9 +1023,7 @@ Start by creating a session and listing the processes."""
             assert "debug_create_session" in tool_names, "Should create a debug session"
 
             # Should have listed processes
-            assert (
-                "debug_container_list_processes" in tool_names
-            ), "Should list container processes"
+            assert "debug_container_list_processes" in tool_names, "Should list container processes"
 
             # Should have reported findings
             assert executor.findings is not None, "Should report findings"

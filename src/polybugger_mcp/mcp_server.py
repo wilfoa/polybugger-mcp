@@ -990,7 +990,7 @@ async def debug_container_list_processes(
         ContainerNotRunningError,
     )
     from polybugger_mcp.containers.factory import create_runtime, is_runtime_supported
-    from polybugger_mcp.containers.ssh_tunnel import SSHTunnelError, get_tunnel_manager
+    from polybugger_mcp.containers.ssh_tunnel import SSHTunnelError
     from polybugger_mcp.models.container import (
         ContainerRuntime,
         ContainerTarget,
@@ -1021,7 +1021,9 @@ async def debug_container_list_processes(
         target = ContainerTarget(
             runtime=runtime_enum,
             container_id=container if not container.startswith("/") else None,
-            container_name=container if container.startswith("/") or not container.isalnum() else None,
+            container_name=container
+            if container.startswith("/") or not container.isalnum()
+            else None,
             namespace=namespace,
             pod_name=container if runtime_enum == ContainerRuntime.KUBERNETES else None,
             pod_container=container_name,
@@ -1188,9 +1190,7 @@ async def debug_container_attach(
                 return {
                     "error": f"Multiple Python processes found ({len(processes)})",
                     "code": "MULTIPLE_PROCESSES",
-                    "processes": [
-                        {"pid": p.pid, "cmdline": p.cmdline} for p in processes
-                    ],
+                    "processes": [{"pid": p.pid, "cmdline": p.cmdline} for p in processes],
                     "hint": "Specify process_id to select one",
                 }
 
@@ -1391,6 +1391,7 @@ async def debug_container_launch(
 
         # Give debugpy a moment to start
         import asyncio
+
         await asyncio.sleep(0.5)
 
         # Get debugpy endpoint

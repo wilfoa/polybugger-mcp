@@ -3,7 +3,6 @@
 import pytest
 
 from polybugger_mcp.containers.base import (
-    ContainerError,
     ContainerNotFoundError,
     ContainerSecurityError,
 )

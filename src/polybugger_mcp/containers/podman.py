@@ -15,7 +15,7 @@ class PodmanRuntime(DockerRuntime):
     all functionality from DockerRuntime with the CLI command changed.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Podman runtime."""
         super().__init__(cli_override="podman")
 

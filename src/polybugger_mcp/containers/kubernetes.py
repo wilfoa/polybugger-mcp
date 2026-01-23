@@ -233,7 +233,7 @@ class KubernetesRuntime(ContainerRuntimeAdapter):
         env: dict[str, str] | None = None,
         workdir: str | None = None,
         timeout: float = 30.0,
-        user: str | None = None,
+        user: str | None = None,  # noqa: ARG002 - kept for API compatibility
     ) -> ExecResult:
         """Execute a command inside a pod."""
         namespace, pod_name = self._get_pod_identifier(target)

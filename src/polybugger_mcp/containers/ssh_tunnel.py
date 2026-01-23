@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class SSHTunnelError(Exception):
     """Raised when SSH tunnel operations fail."""
 
-    def __init__(self, message: str, details: dict | None = None):
+    def __init__(self, message: str, details: dict[str, object] | None = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -30,7 +30,8 @@ def _get_free_port() -> int:
     """Get an available local port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+        port: int = s.getsockname()[1]
+        return port
 
 
 @dataclass
@@ -110,7 +111,7 @@ class SSHTunnel:
 class SSHTunnelManager:
     """Manages SSH tunnels for remote debugging."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tunnels: dict[str, SSHTunnel] = {}
         self._lock = asyncio.Lock()
 
@@ -164,13 +165,20 @@ class SSHTunnelManager:
         cmd = [
             ssh_cmd,
             "-N",  # Don't execute remote command
-            "-L", f"{local_port}:{remote_host}:{remote_port}",  # Local port forward
-            "-o", "StrictHostKeyChecking=accept-new",  # Accept new host keys
-            "-o", "BatchMode=yes",  # Non-interactive mode
-            "-o", "ConnectTimeout=10",
-            "-o", "ServerAliveInterval=30",
-            "-o", "ServerAliveCountMax=3",
-            "-p", str(ssh_config.port),
+            "-L",
+            f"{local_port}:{remote_host}:{remote_port}",  # Local port forward
+            "-o",
+            "StrictHostKeyChecking=accept-new",  # Accept new host keys
+            "-o",
+            "BatchMode=yes",  # Non-interactive mode
+            "-o",
+            "ConnectTimeout=10",
+            "-o",
+            "ServerAliveInterval=30",
+            "-o",
+            "ServerAliveCountMax=3",
+            "-p",
+            str(ssh_config.port),
         ]
 
         # Add key file if specified
@@ -284,9 +292,7 @@ class SSHTunnelManager:
                 return tunnel
             return None
 
-    async def close_tunnel(
-        self, ssh_host: str, remote_host: str, remote_port: int
-    ) -> bool:
+    async def close_tunnel(self, ssh_host: str, remote_host: str, remote_port: int) -> bool:
         """Close a specific tunnel.
 
         Args:

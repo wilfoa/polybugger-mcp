@@ -39,7 +39,7 @@ class ContainerInfo:
     labels: dict[str, str] = field(default_factory=dict)
 
     # Runtime-specific info
-    runtime_data: dict = field(default_factory=dict)
+    runtime_data: dict[str, str] = field(default_factory=dict)
 
     @property
     def is_running(self) -> bool:

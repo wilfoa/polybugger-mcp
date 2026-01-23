@@ -51,7 +51,7 @@ def register_runtime(
 
 def create_runtime(
     runtime: str | ContainerRuntime,
-    **kwargs,
+    **kwargs: str,
 ) -> ContainerRuntimeAdapter:
     """Create a container runtime adapter.
 
@@ -82,7 +82,7 @@ def create_runtime(
     return adapter_class(**kwargs)
 
 
-def create_runtime_for_target(target: ContainerTarget, **kwargs) -> ContainerRuntimeAdapter:
+def create_runtime_for_target(target: ContainerTarget, **kwargs: str) -> ContainerRuntimeAdapter:
     """Create a runtime adapter for a specific container target.
 
     Args:

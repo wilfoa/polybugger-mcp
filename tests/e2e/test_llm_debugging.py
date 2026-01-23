@@ -872,9 +872,9 @@ Find the bug and report your findings."""
 
         # Check that python_path was included
         create_input = create_calls[0]["input"]
-        assert "python_path" in create_input, (
-            f"LLM should use python_path parameter. Got input: {create_input}"
-        )
+        assert (
+            "python_path" in create_input
+        ), f"LLM should use python_path parameter. Got input: {create_input}"
         assert create_input["python_path"] == current_python, (
             f"LLM should use the specified Python path. "
             f"Expected: {current_python}, Got: {create_input.get('python_path')}"

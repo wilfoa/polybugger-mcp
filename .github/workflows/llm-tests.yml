@@ -23,7 +23,7 @@ jobs:
     name: LLM Debugging Tests
     runs-on: ubuntu-latest
     # Always run - tests will skip if ANTHROPIC_API_KEY is not set
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
     name: LLM Tests (Native)
     runs-on: ubuntu-latest
     # Always run - tests will skip if ANTHROPIC_API_KEY is not set
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [llm-e2e-tests, llm-e2e-tests-native]
     if: always()
-    
+
     steps:
       - name: Check results
         run: |

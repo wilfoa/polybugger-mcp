@@ -22,48 +22,15 @@
 
 ## Demo
 
-![polybugger-mcp demo](docs/demo.gif)
+### AI Debugging a Crashing Script
 
-### LLM Autonomously Finds Bugs
+The AI uses polybugger to find a division-by-zero bug in a Python script:
 
-<!--
-To generate these GIFs, install VHS (https://github.com/charmbracelet/vhs) and run:
-  vhs docs/tapes/llm_division_bug.tape
-  vhs docs/tapes/llm_index_error.tape
-  vhs docs/tapes/llm_container_debug.tape
--->
+![polybugger debugging demo](docs/debug_full_demo.gif)
 
-<details>
-<summary><b>Finding a Division by Zero Bug</b></summary>
+### Available Debug Tools
 
-Claude autonomously debugs a Python script, sets breakpoints, inspects variables, and identifies a division by zero bug.
-
-![LLM finds division by zero bug](docs/llm_division_bug.gif)
-</details>
-
-<details>
-<summary><b>Finding an Index Out of Bounds Bug</b></summary>
-
-Claude debugs an IndexError by stepping through the code and examining the loop bounds.
-
-![LLM finds index error bug](docs/llm_index_error.gif)
-</details>
-
-<details>
-<summary><b>Debugging Inside Docker Containers</b></summary>
-
-Claude attaches to a Python process running inside a Docker container and inspects its state.
-
-![LLM debugs in Docker container](docs/llm_container_debug.gif)
-</details>
-
-<details>
-<summary><b>Multi-Language Support</b></summary>
-
-Claude queries available languages and creates debug sessions for different runtimes.
-
-![LLM uses multi-language support](docs/llm_language_selection.gif)
-</details>
+![polybugger tools overview](docs/debug_demo.gif)
 
 ## Why polybugger-mcp?
 
@@ -460,20 +427,18 @@ make typecheck
 
 ### Recording Demo GIFs
 
-Demo GIFs are created using [VHS](https://github.com/charmbracelet/vhs). To regenerate them:
+Demo GIFs are created using [VHS](https://github.com/charmbracelet/vhs) with OpenCode as the MCP client. To regenerate them:
 
 ```bash
 # Install VHS
 brew install charmbracelet/tap/vhs
 
-# Set your API key for LLM tests
-export ANTHROPIC_API_KEY=your-key
+# Configure OpenCode with polybugger MCP (in ~/.config/opencode/opencode.json)
+# Add: "mcp": { "polybugger": { "type": "local", "command": ["uvx", "polybugger-mcp"], "enabled": true } }
 
 # Generate the GIFs
-vhs docs/tapes/llm_division_bug.tape      # LLM finds division by zero
-vhs docs/tapes/llm_index_error.tape       # LLM finds index error
-vhs docs/tapes/llm_container_debug.tape   # LLM debugs in Docker
-vhs docs/tapes/llm_language_selection.tape # Multi-language support
+vhs docs/tapes/debug_demo.tape       # Shows available debug tools
+vhs docs/tapes/debug_full_demo.tape  # Full debugging workflow
 ```
 
 ## Architecture

@@ -57,6 +57,14 @@ Claude attaches to a Python process running inside a Docker container and inspec
 ![LLM debugs in Docker container](docs/llm_container_debug.gif)
 </details>
 
+<details>
+<summary><b>Multi-Language Support</b></summary>
+
+Claude queries available languages and creates debug sessions for different runtimes.
+
+![LLM uses multi-language support](docs/llm_language_selection.gif)
+</details>
+
 ## Why polybugger-mcp?
 
 | Feature | polybugger-mcp | Other MCP debuggers |

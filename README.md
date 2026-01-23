@@ -5,27 +5,73 @@
 [![Tests](https://github.com/wilfoa/polybugger-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/wilfoa/polybugger-mcp/actions/workflows/tests.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-A lightweight, pure-Python MCP server for interactive debugging. Uses debugpy (VS Code's debugger) under the hood for reliable, battle-tested debugging.
+**Multi-language MCP debugger** for AI agents. Debug Python, JavaScript/TypeScript, Go, and Rust with a single tool.
 
 [![Install in Cursor](https://img.shields.io/badge/Cursor-Install%20MCP-blue?style=for-the-badge&logo=cursor)](https://cursor.com/install-mcp?name=polybugger&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwb2x5YnVnZ2VyLW1jcCJdfQ==)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install%20Server-0098FF?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22polybugger%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22polybugger-mcp%22%5D%7D)
+
+## Supported Languages
+
+| Language | Debugger | Status |
+|----------|----------|--------|
+| **Python** | debugpy (VS Code) | Stable |
+| **JavaScript/TypeScript** | Node.js Debug Adapter | Stable |
+| **Go** | Delve | Stable |
+| **Rust** | CodeLLDB | Stable |
+| **C/C++** | CodeLLDB | Stable |
 
 ## Demo
 
 ![polybugger-mcp demo](docs/demo.gif)
 
+### LLM Autonomously Finds Bugs
+
+<!-- 
+To generate these GIFs, install VHS (https://github.com/charmbracelet/vhs) and run:
+  vhs docs/tapes/llm_division_bug.tape
+  vhs docs/tapes/llm_index_error.tape
+  vhs docs/tapes/llm_container_debug.tape
+-->
+
+<details>
+<summary><b>Finding a Division by Zero Bug</b></summary>
+
+Claude autonomously debugs a Python script, sets breakpoints, inspects variables, and identifies a division by zero bug.
+
+![LLM finds division by zero bug](docs/llm_division_bug.gif)
+</details>
+
+<details>
+<summary><b>Finding an Index Out of Bounds Bug</b></summary>
+
+Claude debugs an IndexError by stepping through the code and examining the loop bounds.
+
+![LLM finds index error bug](docs/llm_index_error.gif)
+</details>
+
+<details>
+<summary><b>Debugging Inside Docker Containers</b></summary>
+
+Claude attaches to a Python process running inside a Docker container and inspects its state.
+
+![LLM debugs in Docker container](docs/llm_container_debug.gif)
+</details>
+
 ## Why polybugger-mcp?
 
 | Feature | polybugger-mcp | Other MCP debuggers |
 |---------|--------------|---------------------|
+| **Multi-Language** | Python, JS/TS, Go, Rust, C/C++ | Python only |
+| **Container Debugging** | Docker, Podman, Kubernetes | Not available |
 | **Session Recovery** | Resume debugging after server restart | Not available |
 | **Watch Expressions** | Track values across debug steps | Planned for 2026 |
 | **Pure Python** | Single `pip install`, no Node.js | Requires Node.js runtime |
 | **HTTP API** | Use independently of MCP | MCP-only |
-| **Lightweight** | ~50KB, minimal dependencies | ~3MB+ bundled |
 
 ## Key Features
 
+- **Multi-Language Debugging** - Python, JavaScript/TypeScript, Go, Rust, and C/C++
+- **Container Debugging** - Debug processes inside Docker, Podman, and Kubernetes
 - **Session Recovery** - Persist debug state and resume after server restart
 - **Watch Expressions** - Define expressions to track across every debug step
 - **Smart Data Inspection** - Intelligent preview of DataFrames, NumPy arrays, dicts, and lists
@@ -212,15 +258,16 @@ Or in your MCP config:
 ```
 </details>
 
-## Available Tools (23 tools)
+## Available Tools (28 tools)
 
 ### Session Management
 | Tool | Description |
 |------|-------------|
-| `debug_create_session` | Create a new debug session for a project |
+| `debug_create_session` | Create a new debug session (supports `language` parameter) |
 | `debug_list_sessions` | List all active debug sessions |
 | `debug_get_session` | Get detailed session information |
 | `debug_terminate_session` | End a debug session and clean up |
+| `debug_list_languages` | List supported programming languages |
 
 ### Breakpoints
 | Tool | Description |
@@ -232,10 +279,11 @@ Or in your MCP config:
 ### Execution Control
 | Tool | Description |
 |------|-------------|
-| `debug_launch` | Launch a Python program for debugging |
+| `debug_launch` | Launch a program for debugging |
 | `debug_continue` | Continue execution until next breakpoint |
 | `debug_step` | Step execution: `mode="over"` (next line), `"into"` (enter function), `"out"` (exit function) |
 | `debug_pause` | Pause a running program |
+| `debug_attach` | Attach to a running debugpy server |
 
 ### Inspection
 | Tool | Description |
@@ -243,7 +291,7 @@ Or in your MCP config:
 | `debug_get_stacktrace` | Get the current call stack (supports TUI format) |
 | `debug_get_scopes` | Get variable scopes (locals, globals) |
 | `debug_get_variables` | Get variables in a scope (supports TUI format) |
-| `debug_evaluate` | Evaluate a Python expression |
+| `debug_evaluate` | Evaluate an expression in the current context |
 | `debug_inspect_variable` | **Smart inspection** of DataFrames, arrays, dicts with metadata |
 | `debug_get_call_chain` | **Call hierarchy** with source context for each frame |
 
@@ -264,6 +312,13 @@ Or in your MCP config:
 |------|-------------|
 | `debug_list_recoverable` | List sessions that can be recovered |
 | `debug_recover_session` | Recover a session from previous server run |
+
+### Container Debugging
+| Tool | Description |
+|------|-------------|
+| `debug_container_list_processes` | List Python processes in a container |
+| `debug_container_attach` | Attach to a process in a container (auto-injects debugpy) |
+| `debug_container_launch` | Launch a program with debugging in a container |
 
 ## Quick Start
 
@@ -335,6 +390,33 @@ AI: [Uses debug_get_call_chain with format="tui"]
                 │ >> 23 │     return base * rate
 ```
 
+### Container Debugging
+```
+You: Debug the Python process running in my Docker container "api-server"
+
+AI: I'll list the Python processes in that container and attach the debugger.
+    [Lists processes, finds PID 1234, injects debugpy, attaches]
+
+    Successfully attached to process 1234 in container "api-server".
+    The program is paused at the entry point. Here's the current state:
+    - File: /app/server.py
+    - Function: handle_request
+    - Line: 45
+    
+    I can see the request object contains invalid JSON. The 'data' field is None.
+```
+
+### Multi-Language Debugging
+```
+You: Debug my Go server - it's crashing on startup
+
+AI: I'll create a Go debug session using Delve.
+    [Creates session with language="go", sets breakpoints, launches]
+
+    The program stopped at main.go:23. The config variable is nil
+    because the environment variable CONFIG_PATH is not set.
+```
+
 ## Configuration
 
 Environment variables (prefix with `PYBUGGER_MCP_`):
@@ -368,13 +450,48 @@ make lint
 make typecheck
 ```
 
+### Recording Demo GIFs
+
+Demo GIFs are created using [VHS](https://github.com/charmbracelet/vhs). To regenerate them:
+
+```bash
+# Install VHS
+brew install charmbracelet/tap/vhs
+
+# Set your API key for LLM tests
+export ANTHROPIC_API_KEY=your-key
+
+# Generate the GIFs
+vhs docs/tapes/llm_division_bug.tape      # LLM finds division by zero
+vhs docs/tapes/llm_index_error.tape       # LLM finds index error
+vhs docs/tapes/llm_container_debug.tape   # LLM debugs in Docker
+vhs docs/tapes/llm_language_selection.tape # Multi-language support
+```
+
 ## Architecture
 
 ```
-AI Agent  <-->  MCP Server  <-->  debugpy (DAP)  <-->  Python Process
+                              ┌─────────────────┐
+                              │  debugpy        │──▶ Python
+                              ├─────────────────┤
+AI Agent  ◀──▶  MCP Server  ◀─┤  Node Debug     │──▶ JavaScript/TypeScript
+                              ├─────────────────┤
+                              │  Delve          │──▶ Go
+                              ├─────────────────┤
+                              │  CodeLLDB       │──▶ Rust/C/C++
+                              └─────────────────┘
+                                     │
+                              ┌──────┴──────┐
+                              │  Container  │
+                              │  Runtimes   │
+                              ├─────────────┤
+                              │ Docker      │
+                              │ Podman      │
+                              │ Kubernetes  │
+                              └─────────────┘
 ```
 
-The MCP server translates tool calls to Debug Adapter Protocol (DAP) messages, enabling full debugging capabilities through natural language.
+The MCP server translates tool calls to Debug Adapter Protocol (DAP) messages for each language's debugger, enabling full debugging capabilities through natural language.
 
 ## Requirements
 

@@ -56,12 +56,35 @@ class LaunchConfig(BaseModel):
     redirect_input: bool = False
 
 
+class PathMapping(BaseModel):
+    """Maps local paths to remote/container paths for debugging."""
+
+    local_root: str
+    remote_root: str
+
+    def to_remote(self, local_path: str) -> str:
+        """Convert a local path to the corresponding remote path."""
+        if local_path.startswith(self.local_root):
+            relative = local_path[len(self.local_root) :].lstrip("/")
+            return f"{self.remote_root.rstrip('/')}/{relative}"
+        return local_path
+
+    def to_local(self, remote_path: str) -> str:
+        """Convert a remote path to the corresponding local path."""
+        if remote_path.startswith(self.remote_root):
+            relative = remote_path[len(self.remote_root) :].lstrip("/")
+            return f"{self.local_root.rstrip('/')}/{relative}"
+        return remote_path
+
+
 class AttachConfig(BaseModel):
     """Configuration for attaching to a process."""
 
     process_id: int | None = None
     host: str = "localhost"
     port: int = 5678
+    # Path mappings for remote/container debugging
+    path_mappings: list[PathMapping] = Field(default_factory=list)
 
 
 class SourceBreakpoint(BaseModel):

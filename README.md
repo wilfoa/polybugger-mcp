@@ -32,6 +32,30 @@ The AI uses polybugger to find a division-by-zero bug in a Python script:
 
 ![polybugger tools overview](docs/debug_demo.gif)
 
+### Session Continuity
+
+Debug sessions persist across multiple interactions - no need to reconfigure breakpoints or restart:
+
+![session continuity demo](docs/session_continuity_demo.gif)
+
+### Call Chain Visualization
+
+See the complete call stack with source context at each frame:
+
+![call chain demo](docs/call_chain_demo.gif)
+
+### Watch Expressions
+
+Track variable values as they change through execution:
+
+![watch expressions demo](docs/watch_expressions_demo.gif)
+
+### Container Debugging
+
+Debug Python processes inside Docker, Podman, or Kubernetes containers:
+
+![container debugging demo](docs/container_debug_demo.gif)
+
 ## Why polybugger-mcp?
 
 | Feature | polybugger-mcp | Other MCP debuggers |
@@ -437,8 +461,12 @@ brew install charmbracelet/tap/vhs
 # Add: "mcp": { "polybugger": { "type": "local", "command": ["uvx", "polybugger-mcp"], "enabled": true } }
 
 # Generate the GIFs
-vhs docs/tapes/debug_demo.tape       # Shows available debug tools
-vhs docs/tapes/debug_full_demo.tape  # Full debugging workflow
+vhs docs/tapes/debug_demo.tape              # Shows available debug tools
+vhs docs/tapes/debug_full_demo.tape         # Full debugging workflow
+vhs docs/tapes/session_continuity_demo.tape # Session persistence across interactions
+vhs docs/tapes/call_chain_demo.tape         # Call stack visualization
+vhs docs/tapes/watch_expressions_demo.tape  # Watch expressions feature
+vhs docs/tapes/container_debug_demo.tape    # Container debugging
 ```
 
 ## Architecture

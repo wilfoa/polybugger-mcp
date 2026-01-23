@@ -1,5 +1,5 @@
-# VHS Tape: Quick polybugger demo
-# Run: vhs docs/tapes/debug_demo.tape
+# VHS Tape: Quick polybugger demo - shows available tools
+# Run from project root: cd polybugger-mcp && vhs docs/tapes/debug_demo.tape
 
 Output docs/debug_demo.gif
 
@@ -13,11 +13,11 @@ Set Framerate 12
 Set TypingSpeed 30ms
 
 # Title
-Type "# polybugger-mcp: AI-powered debugging"
+Type "# polybugger-mcp: AI-powered multi-language debugging"
 Enter
 Sleep 1s
 
 # Show available tools
-Type "opencode run 'What debug tools are available from polybugger?'"
+Type "opencode run 'What debug tools are available from polybugger? List them briefly.'"
 Enter
 Sleep 30s

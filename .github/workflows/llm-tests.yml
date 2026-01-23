@@ -87,8 +87,8 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          poetry run pytest tests/e2e/test_llm_debugging.py -v --tb=short -s
-        timeout-minutes: 10
+          poetry run pytest tests/e2e/test_llm_debugging.py tests/e2e/test_container_debugging.py::TestLLMContainerDebugging -v --tb=short -s
+        timeout-minutes: 15
 
   # Report results
   report:

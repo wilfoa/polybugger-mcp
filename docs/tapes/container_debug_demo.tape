@@ -12,30 +12,38 @@ Set Padding 15
 Set Framerate 12
 Set TypingSpeed 35ms
 
+# Wait for shell to initialize
+Sleep 2s
+
+# Clean up any existing container first
+Type "docker rm -f debug-demo 2>/dev/null; echo '=== Container Debugging Demo ==='"
+Enter
+Sleep 2s
+
 # Start a Python container with a long-running script
-Type "echo '=== Starting Docker container with Python ==='"
+Type "echo 'Starting a Python container with a long-running process...'"
 Enter
 Sleep 1s
 
-Type `docker run -d --name debug-demo python:3.11 python -c "import time; print('Running...'); exec('while True: time.sleep(1)')"`
+Type `docker run -d --name debug-demo python:3.11 python -c "import time; exec('while True: time.sleep(1)')"`
 Enter
-Sleep 4s
+Sleep 5s
 
 # Verify container is running
-Type "docker ps --filter name=debug-demo --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'"
+Type "echo '--- Container Status ---' && docker ps --filter name=debug-demo --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'"
 Enter
-Sleep 2s
+Sleep 3s
 
-# Now use OpenCode with polybugger to debug the container
-Type "echo '=== Using polybugger to debug container ==='"
+# Now use OpenCode with polybugger to list processes
+Type "echo '=== Using polybugger to inspect container ==='"
 Enter
 Sleep 1s
 
-Type `opencode run "Use polybugger to list Python processes in the 'debug-demo' Docker container. Use debug_container_list_processes with runtime=docker and container=debug-demo"`
+Type `opencode run "Use the debug_container_list_processes tool to list Python processes running inside the Docker container named 'debug-demo'. Show me what processes are running."`
 Enter
-Sleep 45s
+Sleep 55s
 
 # Cleanup
-Type "echo '=== Cleanup ===' && docker rm -f debug-demo"
+Type "echo '=== Demo Complete - Cleaning up ===' && docker rm -f debug-demo"
 Enter
-Sleep 2s
+Sleep 3s

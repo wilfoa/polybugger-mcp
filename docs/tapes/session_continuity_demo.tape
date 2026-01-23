@@ -13,6 +13,9 @@ Set Padding 15
 Set Framerate 12
 Set TypingSpeed 35ms
 
+# Wait for shell to initialize
+Sleep 2s
+
 # Show the demo script
 Type "echo '=== Session Continuity Demo ==='"
 Enter

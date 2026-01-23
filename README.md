@@ -50,12 +50,6 @@ Track variable values as they change through execution:
 
 ![watch expressions demo](docs/watch_expressions_demo.gif)
 
-### Container Debugging
-
-Debug Python processes inside Docker, Podman, or Kubernetes containers:
-
-![container debugging demo](docs/container_debug_demo.gif)
-
 ## Why polybugger-mcp?
 
 | Feature | polybugger-mcp | Other MCP debuggers |

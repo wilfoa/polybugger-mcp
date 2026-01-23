@@ -12,6 +12,9 @@ Set Padding 20
 Set Framerate 12
 Set TypingSpeed 30ms
 
+# Wait for shell to initialize
+Sleep 2s
+
 # Title
 Type "# polybugger-mcp: AI-powered multi-language debugging"
 Enter

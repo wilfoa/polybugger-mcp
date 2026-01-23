@@ -1389,10 +1389,10 @@ async def debug_container_launch(
             workdir=cwd,
         )
 
-        # Give debugpy a moment to start
+        # Give debugpy time to start - container processes may take longer
         import asyncio
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2.0)
 
         # Get debugpy endpoint
         host, port = await adapter.get_debugpy_endpoint(target, debugpy_port)

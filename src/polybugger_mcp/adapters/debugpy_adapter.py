@@ -377,7 +377,10 @@ class DebugpyAdapter(DebugAdapter):
             initialized_event = self._initialized_event
 
             async def send_attach() -> None:
-                await client.send_request("attach", args)
+                # Use longer timeout for attach since it involves remote connection
+                await client.send_request(
+                    "attach", args, timeout=settings.dap_launch_timeout_seconds
+                )
 
             async def wait_configure_done() -> None:
                 try:

@@ -764,6 +764,23 @@ class ContainerDebugToolExecutor:
                 # Fall back to mapped port
                 host, port = "127.0.0.1", 15680
 
+            # Wait for debugpy port to be ready (don't use connect/close which
+            # can interfere with debugpy.wait_for_client())
+            import socket as sock_module
+
+            for _attempt in range(10):
+                try:
+                    # Just check if the port is open, don't fully connect
+                    sock = sock_module.socket(sock_module.AF_INET, sock_module.SOCK_STREAM)
+                    sock.settimeout(1)
+                    result = sock.connect_ex((host, port))
+                    sock.close()
+                    if result == 0:
+                        break
+                except Exception:
+                    pass
+                await asyncio.sleep(1)
+
             attach_config = AttachConfig(
                 host=host,
                 port=port,

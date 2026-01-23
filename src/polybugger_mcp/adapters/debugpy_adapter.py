@@ -362,6 +362,16 @@ class DebugpyAdapter(DebugAdapter):
                 "port": config.port,
             }
 
+        # Add path mappings for remote/container debugging
+        if config.path_mappings:
+            args["pathMappings"] = [
+                {
+                    "localRoot": pm.local_root,
+                    "remoteRoot": pm.remote_root,
+                }
+                for pm in config.path_mappings
+            ]
+
         try:
             self._initialized_event = asyncio.Event()
             initialized_event = self._initialized_event

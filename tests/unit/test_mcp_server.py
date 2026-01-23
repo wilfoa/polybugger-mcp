@@ -51,8 +51,9 @@ class TestMCPServerRegistration:
     def test_tool_count(self):
         """Test total number of tools."""
         tools = list(mcp._tool_manager._tools.keys())
-        # 24 tools: session (5), breakpoint (3), execution (4), inspection (6), watch (2), event/output (2), recovery (2)
-        assert len(tools) == 24
+        # 28 tools: session (5), breakpoint (3), execution (5 - includes debug_attach),
+        # inspection (6), watch (2), event/output (2), recovery (2), container (3)
+        assert len(tools) == 28
 
     def test_server_name(self):
         """Test server name is set."""

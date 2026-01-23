@@ -292,6 +292,6 @@ class TestCodeLLDBAdapter:
         assert "result" in result
         # LLDB may return the result in different formats
         result_str = str(result.get("result", ""))
-        assert (
-            "30" in result_str or "(int) 30" in result_str or "i32) 30" in result_str
-        ), f"Expected '30' in result: {result}"
+        assert "30" in result_str or "(int) 30" in result_str or "i32) 30" in result_str, (
+            f"Expected '30' in result: {result}"
+        )

@@ -24,7 +24,7 @@ from polybugger_mcp.core.exceptions import (
     SessionNotFoundError,
 )
 from polybugger_mcp.core.session import SessionManager
-from polybugger_mcp.models.dap import LaunchConfig, SourceBreakpoint
+from polybugger_mcp.models.dap import AttachConfig, LaunchConfig, PathMapping, SourceBreakpoint
 from polybugger_mcp.models.session import SessionConfig
 from polybugger_mcp.utils.tui_formatter import TUIFormatter
 
@@ -391,6 +391,68 @@ async def debug_launch(
         return {"error": str(e), "code": "INVALID_STATE"}
     except Exception as e:
         return {"error": str(e), "code": "LAUNCH_FAILED"}
+
+
+@mcp.tool()
+async def debug_attach(
+    session_id: str,
+    host: str = "localhost",
+    port: int = 5678,
+    process_id: int | None = None,
+    path_mappings: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Attach to a remote debugpy server.
+
+    Use this to attach to a Python process that's already running debugpy.
+    The target process must have called debugpy.listen() or been started with
+    `python -m debugpy --listen host:port`.
+
+    Args:
+        session_id: Session ID
+        host: Remote host running debugpy (default localhost)
+        port: debugpy port (default 5678)
+        process_id: PID to attach to (alternative to host:port for local processes)
+        path_mappings: Local/remote path mappings for source files.
+                       Each mapping is {"local_root": "/local/path", "remote_root": "/remote/path"}
+    """
+    manager = _get_manager()
+    try:
+        session = await manager.get_session(session_id)
+
+        # Build path mappings
+        mappings: list[PathMapping] = []
+        if path_mappings:
+            for pm in path_mappings:
+                mappings.append(
+                    PathMapping(
+                        local_root=pm.get("local_root", ""),
+                        remote_root=pm.get("remote_root", ""),
+                    )
+                )
+
+        config = AttachConfig(
+            host=host,
+            port=port,
+            process_id=process_id,
+            path_mappings=mappings,
+        )
+
+        await session.attach(config)
+
+        return {
+            "status": "attached",
+            "session_id": session_id,
+            "state": session.state.value,
+            "host": host,
+            "port": port,
+            "message": "Attached to debugpy. Poll events or wait for stopped state.",
+        }
+    except SessionNotFoundError:
+        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
+    except InvalidSessionStateError as e:
+        return {"error": str(e), "code": "INVALID_STATE"}
+    except Exception as e:
+        return {"error": str(e), "code": "ATTACH_FAILED"}
 
 
 @mcp.tool()
@@ -894,6 +956,504 @@ async def debug_get_output(
         }
     except SessionNotFoundError:
         return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
+
+
+# =============================================================================
+# Container Debugging Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def debug_container_list_processes(
+    runtime: str,
+    container: str,
+    namespace: str = "default",
+    container_name: str | None = None,
+    ssh_host: str | None = None,
+    ssh_user: str | None = None,
+    ssh_key_path: str | None = None,
+) -> dict[str, Any]:
+    """List Python processes in a container.
+
+    Args:
+        runtime: Container runtime - "docker", "podman", or "kubernetes"
+        container: Container ID/name (or pod name for Kubernetes)
+        namespace: Kubernetes namespace (ignored for docker/podman)
+        container_name: Container name within pod (for multi-container pods)
+        ssh_host: SSH host for remote containers
+        ssh_user: SSH username for remote containers
+        ssh_key_path: Path to SSH private key
+    """
+    from polybugger_mcp.containers.base import (
+        ContainerError,
+        ContainerNotFoundError,
+        ContainerNotRunningError,
+    )
+    from polybugger_mcp.containers.factory import create_runtime, is_runtime_supported
+    from polybugger_mcp.containers.ssh_tunnel import SSHTunnelError
+    from polybugger_mcp.models.container import (
+        ContainerRuntime,
+        ContainerTarget,
+        SSHConfig,
+    )
+
+    # Validate runtime
+    if not is_runtime_supported(runtime):
+        from polybugger_mcp.containers.factory import get_supported_runtimes
+
+        return {
+            "error": f"Unsupported runtime: {runtime}",
+            "code": "UNSUPPORTED_RUNTIME",
+            "supported": get_supported_runtimes(),
+        }
+
+    try:
+        # Create target
+        runtime_enum = ContainerRuntime(runtime.lower())
+        ssh_config = None
+        if ssh_host and ssh_user:
+            ssh_config = SSHConfig(
+                host=ssh_host,
+                user=ssh_user,
+                key_path=ssh_key_path,
+            )
+
+        target = ContainerTarget(
+            runtime=runtime_enum,
+            container_id=container if not container.startswith("/") else None,
+            container_name=container
+            if container.startswith("/") or not container.isalnum()
+            else None,
+            namespace=namespace,
+            pod_name=container if runtime_enum == ContainerRuntime.KUBERNETES else None,
+            pod_container=container_name,
+            ssh=ssh_config,
+        )
+
+        # For Docker/Podman, set container_name if it looks like a name
+        if runtime_enum in (ContainerRuntime.DOCKER, ContainerRuntime.PODMAN):
+            if not target.container_id:
+                target.container_name = container
+
+        # Create runtime adapter
+        adapter = create_runtime(runtime)
+
+        # Check if available
+        if not await adapter.is_available():
+            return {
+                "error": f"{runtime} CLI not available",
+                "code": "RUNTIME_NOT_AVAILABLE",
+                "hint": f"Ensure {adapter.cli_command} is installed and accessible",
+            }
+
+        # Find Python processes
+        processes = await adapter.find_python_processes(target)
+
+        return {
+            "container": target.identifier,
+            "runtime": runtime,
+            "processes": [
+                {
+                    "pid": p.pid,
+                    "name": p.name,
+                    "cmdline": p.cmdline,
+                    "user": p.user,
+                    "is_python": p.is_python,
+                }
+                for p in processes
+            ],
+            "total": len(processes),
+        }
+
+    except ContainerNotFoundError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except ContainerNotRunningError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except ContainerError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except SSHTunnelError as e:
+        return {"error": e.message, "code": "SSH_ERROR", "details": e.details}
+    except Exception as e:
+        return {"error": str(e), "code": "CONTAINER_ERROR"}
+
+
+@mcp.tool()
+async def debug_container_attach(
+    session_id: str,
+    runtime: str,
+    container: str,
+    namespace: str = "default",
+    container_name: str | None = None,
+    process_id: int | None = None,
+    process_name: str | None = None,
+    inject_debugpy: bool = True,
+    debugpy_port: int = 5678,
+    path_mappings: list[dict[str, str]] | None = None,
+    ssh_host: str | None = None,
+    ssh_user: str | None = None,
+    ssh_key_path: str | None = None,
+) -> dict[str, Any]:
+    """Attach debugger to a Python process in a container.
+
+    This tool handles:
+    1. Finding the target process (by PID or name)
+    2. Injecting debugpy if not already running
+    3. Setting up port forwarding if needed
+    4. Attaching the debugger session
+
+    Args:
+        session_id: Debug session ID (from debug_create_session)
+        runtime: Container runtime - "docker", "podman", or "kubernetes"
+        container: Container ID/name (or pod name for Kubernetes)
+        namespace: Kubernetes namespace
+        container_name: Container name within pod (for multi-container pods)
+        process_id: PID of Python process inside container
+        process_name: Process name filter (e.g., "python", "gunicorn")
+        inject_debugpy: Auto-inject debugpy if not running (requires SYS_PTRACE)
+        debugpy_port: Port for debugpy to listen on (default 5678)
+        path_mappings: Local/remote path mappings for source files
+        ssh_host: SSH host for remote containers
+        ssh_user: SSH username for remote containers
+        ssh_key_path: Path to SSH private key
+    """
+    from polybugger_mcp.containers.base import (
+        ContainerError,
+        ContainerNotFoundError,
+        ContainerNotRunningError,
+        ContainerSecurityError,
+    )
+    from polybugger_mcp.containers.factory import create_runtime, is_runtime_supported
+    from polybugger_mcp.containers.ssh_tunnel import SSHTunnelError, get_tunnel_manager
+    from polybugger_mcp.models.container import (
+        ContainerRuntime,
+        ContainerTarget,
+        SSHConfig,
+    )
+
+    manager = _get_manager()
+
+    # Validate runtime
+    if not is_runtime_supported(runtime):
+        from polybugger_mcp.containers.factory import get_supported_runtimes
+
+        return {
+            "error": f"Unsupported runtime: {runtime}",
+            "code": "UNSUPPORTED_RUNTIME",
+            "supported": get_supported_runtimes(),
+        }
+
+    try:
+        session = await manager.get_session(session_id)
+
+        # Create target
+        runtime_enum = ContainerRuntime(runtime.lower())
+        ssh_config = None
+        if ssh_host and ssh_user:
+            ssh_config = SSHConfig(
+                host=ssh_host,
+                user=ssh_user,
+                key_path=ssh_key_path,
+            )
+
+        target = ContainerTarget(
+            runtime=runtime_enum,
+            container_name=container,
+            namespace=namespace,
+            pod_name=container if runtime_enum == ContainerRuntime.KUBERNETES else None,
+            pod_container=container_name,
+            ssh=ssh_config,
+        )
+
+        # Create runtime adapter
+        adapter = create_runtime(runtime)
+
+        if not await adapter.is_available():
+            return {
+                "error": f"{runtime} CLI not available",
+                "code": "RUNTIME_NOT_AVAILABLE",
+            }
+
+        # Find the target process
+        if process_id is None:
+            processes = await adapter.find_python_processes(target)
+            if process_name:
+                processes = [p for p in processes if process_name.lower() in p.cmdline.lower()]
+
+            if not processes:
+                return {
+                    "error": "No matching Python processes found",
+                    "code": "NO_PROCESS",
+                    "hint": "Use debug_container_list_processes to see available processes",
+                }
+
+            if len(processes) > 1:
+                return {
+                    "error": f"Multiple Python processes found ({len(processes)})",
+                    "code": "MULTIPLE_PROCESSES",
+                    "processes": [{"pid": p.pid, "cmdline": p.cmdline} for p in processes],
+                    "hint": "Specify process_id to select one",
+                }
+
+            process_id = processes[0].pid
+
+        # Inject debugpy if requested
+        if inject_debugpy:
+            await adapter.inject_debugpy(target, process_id, debugpy_port)
+
+        # Get debugpy endpoint
+        host, port = await adapter.get_debugpy_endpoint(target, debugpy_port)
+
+        # Handle SSH tunneling for remote containers
+        if ssh_config:
+            tunnel_manager = get_tunnel_manager()
+            tunnel = await tunnel_manager.create_tunnel(
+                ssh_config=ssh_config,
+                remote_host=host,
+                remote_port=port,
+            )
+            host = "127.0.0.1"
+            port = tunnel.local_port
+
+        # Build path mappings
+        mappings: list[PathMapping] = []
+        if path_mappings:
+            for pm in path_mappings:
+                mappings.append(
+                    PathMapping(
+                        local_root=pm.get("local_root", ""),
+                        remote_root=pm.get("remote_root", ""),
+                    )
+                )
+
+        # Create attach config and attach
+        attach_config = AttachConfig(
+            host=host,
+            port=port,
+            path_mappings=mappings,
+        )
+
+        await session.attach(attach_config)
+
+        return {
+            "status": "attached",
+            "session_id": session_id,
+            "state": session.state.value,
+            "container": target.identifier,
+            "runtime": runtime,
+            "process_id": process_id,
+            "debugpy_endpoint": f"{host}:{port}",
+            "message": "Attached to container process. Poll events or wait for stopped state.",
+        }
+
+    except SessionNotFoundError:
+        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
+    except InvalidSessionStateError as e:
+        return {"error": str(e), "code": "INVALID_STATE"}
+    except ContainerSecurityError as e:
+        return {
+            "error": e.message,
+            "code": e.code,
+            "instructions": e.instructions,
+        }
+    except ContainerNotFoundError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except ContainerNotRunningError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except ContainerError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except SSHTunnelError as e:
+        return {"error": e.message, "code": "SSH_ERROR", "details": e.details}
+    except Exception as e:
+        logger.exception("Container attach failed")
+        return {"error": str(e), "code": "ATTACH_FAILED"}
+
+
+@mcp.tool()
+async def debug_container_launch(
+    session_id: str,
+    runtime: str,
+    container: str,
+    namespace: str = "default",
+    container_name: str | None = None,
+    program: str | None = None,
+    module: str | None = None,
+    args: list[str] | None = None,
+    cwd: str = "/app",
+    env: dict[str, str] | None = None,
+    debugpy_port: int = 5678,
+    stop_on_entry: bool = False,
+    path_mappings: list[dict[str, str]] | None = None,
+    ssh_host: str | None = None,
+    ssh_user: str | None = None,
+    ssh_key_path: str | None = None,
+) -> dict[str, Any]:
+    """Launch a Python program with debugging in a container.
+
+    This starts a new process with debugpy listening, then attaches
+    the debug session. Does not require SYS_PTRACE capability.
+
+    Args:
+        session_id: Debug session ID (from debug_create_session)
+        runtime: Container runtime - "docker", "podman", or "kubernetes"
+        container: Container ID/name (or pod name for Kubernetes)
+        namespace: Kubernetes namespace
+        container_name: Container name within pod (for multi-container pods)
+        program: Python script path inside container
+        module: Python module to run (e.g., "pytest")
+        args: Program arguments
+        cwd: Working directory inside container (default /app)
+        env: Environment variables
+        debugpy_port: Port for debugpy (default 5678)
+        stop_on_entry: Pause at first line (default False)
+        path_mappings: Local/remote path mappings
+        ssh_host: SSH host for remote containers
+        ssh_user: SSH username for remote containers
+        ssh_key_path: Path to SSH private key
+    """
+    from polybugger_mcp.containers.base import (
+        ContainerError,
+        ContainerNotFoundError,
+        ContainerNotRunningError,
+    )
+    from polybugger_mcp.containers.factory import create_runtime, is_runtime_supported
+    from polybugger_mcp.containers.ssh_tunnel import SSHTunnelError, get_tunnel_manager
+    from polybugger_mcp.models.container import (
+        ContainerRuntime,
+        ContainerTarget,
+        SSHConfig,
+    )
+
+    manager = _get_manager()
+
+    if not program and not module:
+        return {"error": "Either program or module must be specified", "code": "INVALID_ARGS"}
+
+    # Validate runtime
+    if not is_runtime_supported(runtime):
+        from polybugger_mcp.containers.factory import get_supported_runtimes
+
+        return {
+            "error": f"Unsupported runtime: {runtime}",
+            "code": "UNSUPPORTED_RUNTIME",
+            "supported": get_supported_runtimes(),
+        }
+
+    try:
+        session = await manager.get_session(session_id)
+
+        # Create target
+        runtime_enum = ContainerRuntime(runtime.lower())
+        ssh_config = None
+        if ssh_host and ssh_user:
+            ssh_config = SSHConfig(
+                host=ssh_host,
+                user=ssh_user,
+                key_path=ssh_key_path,
+            )
+
+        target = ContainerTarget(
+            runtime=runtime_enum,
+            container_name=container,
+            namespace=namespace,
+            pod_name=container if runtime_enum == ContainerRuntime.KUBERNETES else None,
+            pod_container=container_name,
+            ssh=ssh_config,
+        )
+
+        # Create runtime adapter
+        adapter = create_runtime(runtime)
+
+        if not await adapter.is_available():
+            return {
+                "error": f"{runtime} CLI not available",
+                "code": "RUNTIME_NOT_AVAILABLE",
+            }
+
+        # Build command to launch
+        command: list[str] = []
+        if module:
+            command = ["-m", module]
+        elif program:
+            command = [program]
+
+        if args:
+            command.extend(args)
+
+        # Launch with debugpy
+        await adapter.launch_with_debugpy(
+            target=target,
+            command=command,
+            port=debugpy_port,
+            wait_for_client=True,
+            env=env,
+            workdir=cwd,
+        )
+
+        # Give debugpy time to start - container processes may take longer
+        import asyncio
+
+        await asyncio.sleep(2.0)
+
+        # Get debugpy endpoint
+        host, port = await adapter.get_debugpy_endpoint(target, debugpy_port)
+
+        # Handle SSH tunneling
+        if ssh_config:
+            tunnel_manager = get_tunnel_manager()
+            tunnel = await tunnel_manager.create_tunnel(
+                ssh_config=ssh_config,
+                remote_host=host,
+                remote_port=port,
+            )
+            host = "127.0.0.1"
+            port = tunnel.local_port
+
+        # Build path mappings
+        mappings: list[PathMapping] = []
+        if path_mappings:
+            for pm in path_mappings:
+                mappings.append(
+                    PathMapping(
+                        local_root=pm.get("local_root", ""),
+                        remote_root=pm.get("remote_root", ""),
+                    )
+                )
+
+        # Attach to the launched process
+        attach_config = AttachConfig(
+            host=host,
+            port=port,
+            path_mappings=mappings,
+        )
+
+        await session.attach(attach_config)
+
+        return {
+            "status": "launched",
+            "session_id": session_id,
+            "state": session.state.value,
+            "container": target.identifier,
+            "runtime": runtime,
+            "program": program or module,
+            "debugpy_endpoint": f"{host}:{port}",
+            "message": "Program launched in container. Poll events or wait for stopped state.",
+        }
+
+    except SessionNotFoundError:
+        return {"error": f"Session {session_id} not found", "code": "NOT_FOUND"}
+    except InvalidSessionStateError as e:
+        return {"error": str(e), "code": "INVALID_STATE"}
+    except ContainerNotFoundError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except ContainerNotRunningError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except ContainerError as e:
+        return {"error": e.message, "code": e.code, "details": e.details}
+    except SSHTunnelError as e:
+        return {"error": e.message, "code": "SSH_ERROR", "details": e.details}
+    except Exception as e:
+        logger.exception("Container launch failed")
+        return {"error": str(e), "code": "LAUNCH_FAILED"}
 
 
 # =============================================================================

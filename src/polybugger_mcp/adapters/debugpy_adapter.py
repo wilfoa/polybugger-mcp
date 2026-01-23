@@ -362,12 +362,25 @@ class DebugpyAdapter(DebugAdapter):
                 "port": config.port,
             }
 
+        # Add path mappings for remote/container debugging
+        if config.path_mappings:
+            args["pathMappings"] = [
+                {
+                    "localRoot": pm.local_root,
+                    "remoteRoot": pm.remote_root,
+                }
+                for pm in config.path_mappings
+            ]
+
         try:
             self._initialized_event = asyncio.Event()
             initialized_event = self._initialized_event
 
             async def send_attach() -> None:
-                await client.send_request("attach", args)
+                # Use longer timeout for attach since it involves remote connection
+                await client.send_request(
+                    "attach", args, timeout=settings.dap_launch_timeout_seconds
+                )
 
             async def wait_configure_done() -> None:
                 try:

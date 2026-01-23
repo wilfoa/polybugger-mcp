@@ -224,3 +224,5 @@ Thumbs.db
 # Local editor/tool configs
 opencode.json
 .opencode/
+
+.opencode-telegram

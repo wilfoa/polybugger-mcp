@@ -1,0 +1,17 @@
+FROM python:3.11
+
+# Install gdb for debugpy injection and procps for process listing
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gdb procps && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install debugpy
+RUN pip install --no-cache-dir debugpy
+
+# Copy demo scripts
+COPY buggy_calculator.py /app/
+COPY call_chain_demo.py /app/
+COPY watch_demo.py /app/
+COPY session_demo.py /app/
+
+WORKDIR /app
